@@ -8,7 +8,7 @@ import { listHouseholdInfo, searchHouseholdInfo, addHouseholdInfo, updateHouseho
 import { extractPhone } from '../lib/utils'
 import './HouseholdInfo.css'
 
-const CATEGORIES = ['Contacts', 'Manuals', 'Medical', 'Notes']
+const CATEGORIES = ['Contacts', 'Manuals', 'Medical']
 
 export default function HouseholdInfo() {
   const [entries, setEntries] = useState([])
