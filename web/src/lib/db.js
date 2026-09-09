@@ -97,13 +97,13 @@ export async function listTodoItems(listId) {
     .eq('list_id', listId)
     .order('id')
   if (error) throw error
-  return data
+  return data.map(row => ({ ...row, done: row.is_checked }))
 }
 
 export async function addTodoItem(listId, text, tag = null) {
   const { data, error } = await supabase
     .from('todo_items')
-    .insert({ list_id: listId, text, tag, done: false })
+    .insert({ list_id: listId, text, tag, is_checked: false })
     .select()
     .single()
   if (error) throw error
@@ -122,7 +122,7 @@ export async function updateTodoItem(id, fields) {
 }
 
 export async function checkTodoItem(id, done) {
-  return updateTodoItem(id, { done })
+  return updateTodoItem(id, { is_checked: done })
 }
 
 export async function deleteTodoItem(id) {
@@ -135,7 +135,7 @@ export async function clearCheckedTodoItems(listId) {
     .from('todo_items')
     .delete()
     .eq('list_id', listId)
-    .eq('done', true)
+    .eq('is_checked', true)
   if (error) throw error
 }
 

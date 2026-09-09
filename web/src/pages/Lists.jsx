@@ -84,7 +84,6 @@ function TodoList({ list, onChanged }) {
   const [editingItemId, setEditingItemId] = useState(null)
   const [renamingList, setRenamingList] = useState(false)
   const [deletingList, setDeletingList] = useState(false)
-  const [showCompleted, setShowCompleted] = useState(false)
 
   const loadItems = useCallback(async () => {
     try {
@@ -98,7 +97,7 @@ function TodoList({ list, onChanged }) {
   useEffect(() => { loadItems() }, [loadItems])
 
   const active = items.filter(i => !i.done)
-  const completed = items.filter(i => i.done)
+  const checked = items.filter(i => i.done)
 
   async function handleCheck(item) {
     await checkTodoItem(item.id, !item.done)
@@ -110,12 +109,7 @@ function TodoList({ list, onChanged }) {
     loadItems()
   }
 
-  async function handleRestore(id) {
-    await checkTodoItem(id, false)
-    loadItems()
-  }
-
-  async function handleClearCompleted() {
+  async function handleClearChecked() {
     await clearCheckedTodoItems(list.id)
     loadItems()
   }
@@ -140,13 +134,10 @@ function TodoList({ list, onChanged }) {
         <KebabMenu>
           <button onClick={() => setRenamingList(true)}>Rename</button>
           <button className="danger" onClick={() => setDeletingList(true)}>Delete list</button>
-          {completed.length > 0 && (
+          {checked.length > 0 && (
             <>
               <hr className="kebab-divider" />
-              <button onClick={() => setShowCompleted(v => !v)}>
-                {showCompleted ? 'Hide' : 'Show'} completed ({completed.length})
-              </button>
-              <button className="danger" onClick={handleClearCompleted}>Clear completed</button>
+              <button className="danger" onClick={handleClearChecked}>Clear checked items ({checked.length})</button>
             </>
           )}
         </KebabMenu>
@@ -154,11 +145,8 @@ function TodoList({ list, onChanged }) {
 
       <AddItemForm listId={list.id} onAdded={loadItems} />
 
-      {active.length === 0 && completed.length === 0 && (
+      {items.length === 0 && (
         <p className="muted-text list-empty">No items yet — add one above.</p>
-      )}
-      {active.length === 0 && completed.length > 0 && (
-        <p className="muted-text list-empty">All done! Checked items are in this list's ⋮ menu.</p>
       )}
 
       {active.map(item => (
@@ -174,7 +162,7 @@ function TodoList({ list, onChanged }) {
             <label className="todo-check">
               <input
                 type="checkbox"
-                checked={item.done}
+                checked={false}
                 onChange={() => handleCheck(item)}
               />
               <span className="todo-text">{item.text}</span>
@@ -192,25 +180,24 @@ function TodoList({ list, onChanged }) {
         )
       ))}
 
-      {showCompleted && completed.length > 0 && (
-        <div className="completed-section">
-          <p className="completed-heading">Completed ({completed.length})</p>
-          {completed.map(item => (
-            <div key={item.id} className="todo-item completed">
-              <span className="todo-text struck">{item.text}</span>
-              {item.tag && <TagBadge tag={item.tag} />}
-              <div className="todo-actions">
-                <button className="btn btn-ghost btn-sm" onClick={() => handleRestore(item.id)} aria-label="Restore" title="Restore">
-                  &#8634;
-                </button>
-                <button className="btn btn-ghost btn-sm danger" onClick={() => handleDeleteItem(item.id)} aria-label="Delete">
-                  &#10005;
-                </button>
-              </div>
-            </div>
-          ))}
+      {checked.map(item => (
+        <div key={item.id} className="todo-item todo-checked">
+          <label className="todo-check">
+            <input
+              type="checkbox"
+              checked={true}
+              onChange={() => handleCheck(item)}
+            />
+            <span className="todo-text">{item.text}</span>
+            {item.tag && <TagBadge tag={item.tag} />}
+          </label>
+          <div className="todo-actions">
+            <button className="btn btn-ghost btn-sm danger" onClick={() => handleDeleteItem(item.id)} aria-label="Delete">
+              &#10005;
+            </button>
+          </div>
         </div>
-      )}
+      ))}
 
       <hr className="divider" />
 
