@@ -1,18 +1,25 @@
-export async function handler(event) {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) }
+function json(status, body) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+export default async (req) => {
+  if (req.method !== 'POST') {
+    return json(405, { error: 'Method not allowed' })
   }
 
   let url
   try {
-    const body = JSON.parse(event.body || '{}')
+    const body = await req.json()
     url = body.url
   } catch {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON body' }) }
+    return json(400, { error: 'Invalid JSON body' })
   }
 
   if (!url || typeof url !== 'string') {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Missing "url" field' }) }
+    return json(400, { error: 'Missing "url" field' })
   }
 
   try {
@@ -26,10 +33,7 @@ export async function handler(event) {
     })
 
     if (!resp.ok) {
-      return {
-        statusCode: 502,
-        body: JSON.stringify({ error: `Recipe site returned ${resp.status}` }),
-      }
+      return json(502, { error: `Recipe site returned ${resp.status}` })
     }
 
     const html = await resp.text()
@@ -37,25 +41,15 @@ export async function handler(event) {
     const recipe = extractJsonLdRecipe(html) || extractMetaRecipe(html)
 
     if (!recipe) {
-      return {
-        statusCode: 422,
-        body: JSON.stringify({ error: 'No recipe data found on that page' }),
-      }
+      return json(422, { error: 'No recipe data found on that page' })
     }
 
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(recipe),
-    }
+    return json(200, recipe)
   } catch (err) {
     const message = err.name === 'TimeoutError'
       ? 'Request timed out fetching the recipe page'
       : err.message
-    return {
-      statusCode: 502,
-      body: JSON.stringify({ error: message }),
-    }
+    return json(502, { error: message })
   }
 }
 

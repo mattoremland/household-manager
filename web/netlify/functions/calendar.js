@@ -33,11 +33,10 @@ function getCalendarId() {
 }
 
 function json(statusCode, body) {
-  return {
-    statusCode,
+  return new Response(JSON.stringify(body), {
+    status: statusCode,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  }
+  })
 }
 
 function normalizeEvent(raw) {
