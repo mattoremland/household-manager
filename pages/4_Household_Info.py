@@ -5,7 +5,7 @@ import streamlit as st
 import db
 from style import badge, extract_phone, linkify, page_header
 
-st.set_page_config(page_title="Household Info — Household Manager", page_icon="🏠", layout="wide")
+st.set_page_config(page_title="Household Info — Household Manager", page_icon="OremlandHouseIcon.png", layout="wide")
 
 page_header("Household Info", "Manuals, contacts, wifi, and other reference info")
 

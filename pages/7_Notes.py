@@ -5,7 +5,7 @@ import streamlit as st
 import db
 from style import linkify, page_header
 
-st.set_page_config(page_title="Notes — Household Manager", page_icon="📝", layout="wide")
+st.set_page_config(page_title="Notes — Household Manager", page_icon="OremlandHouseIcon.png", layout="wide")
 
 page_header("Notes", "Freeform notes, sorted by most recently updated")
 

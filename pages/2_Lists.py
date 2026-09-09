@@ -5,7 +5,7 @@ import streamlit as st
 import db
 from style import MUTED_TEXT, page_header, tag_badge
 
-st.set_page_config(page_title="Lists — Household Manager", page_icon="✅", layout="wide")
+st.set_page_config(page_title="Lists — Household Manager", page_icon="OremlandHouseIcon.png", layout="wide")
 
 page_header("Lists", "Shared checklists")
 

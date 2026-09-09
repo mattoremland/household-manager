@@ -10,7 +10,7 @@ import db
 import recipe_service
 from style import MUTED_TEXT, linkify, page_header
 
-st.set_page_config(page_title="Grocery & Meals — Household Manager", page_icon="🛒", layout="wide")
+st.set_page_config(page_title="Grocery & Meals — Household Manager", page_icon="OremlandHouseIcon.png", layout="wide")
 
 page_header("Grocery & Meals", "Shared grocery list and meal plan")
 

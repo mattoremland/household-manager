@@ -6,7 +6,7 @@ from streamlit_calendar import calendar
 import calendar_service
 from style import page_header
 
-st.set_page_config(page_title="Calendar — Household Manager", page_icon="📅", layout="wide")
+st.set_page_config(page_title="Calendar — Household Manager", page_icon="OremlandHouseIcon.png", layout="wide")
 
 page_header("Calendar")
 
