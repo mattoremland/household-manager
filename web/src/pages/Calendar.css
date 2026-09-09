@@ -99,6 +99,27 @@
   margin-bottom: 0.5rem;
 }
 
+.cal-action-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.cal-action-row .btn-full {
+  flex: 1;
+}
+
+/* Invited / tentative events — striped border to distinguish from own events */
+.fc-event-invited {
+  background-color: #3A6A6D !important;
+  border-left: 3px solid #E7ECEE !important;
+  opacity: 0.85;
+}
+
+.fc-event-declined {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
 /* Event form */
 .event-form {
   margin-top: 0.75rem;

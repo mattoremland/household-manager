@@ -56,24 +56,28 @@ export default function Calendar() {
   useEffect(() => { load() }, [load])
 
   const fcEvents = events.map(e => {
-    if (e.allDay) {
-      const endDate = new Date(e.end)
-      endDate.setDate(endDate.getDate() + 1)
-      return {
-        id: e.id,
-        title: e.title,
-        start: e.start,
-        end: endDate.toISOString().slice(0, 10),
-        allDay: true,
-      }
-    }
-    return {
+    const base = {
       id: e.id,
       title: e.title,
       start: e.start,
-      end: e.end,
-      allDay: false,
+      allDay: !!e.allDay,
     }
+
+    if (e.allDay) {
+      const endDate = new Date(e.end)
+      endDate.setDate(endDate.getDate() + 1)
+      base.end = endDate.toISOString().slice(0, 10)
+    } else {
+      base.end = e.end
+    }
+
+    if (e.status === 'needsAction' || e.status === 'tentative') {
+      base.classNames = ['fc-event-invited']
+    } else if (e.status === 'declined') {
+      base.classNames = ['fc-event-declined']
+    }
+
+    return base
   })
 
   function handleEventClick(info) {
@@ -178,12 +182,21 @@ export default function Calendar() {
 
       <hr className="divider" />
 
-      <button
-        className="btn btn-secondary btn-full"
-        onClick={() => { setShowAddForm(v => !v); setEditingEvent(null) }}
-      >
-        {showAddForm ? 'Cancel' : 'Add event'}
-      </button>
+      <div className="cal-action-row">
+        <button
+          className="btn btn-secondary btn-full"
+          onClick={() => { setShowAddForm(v => !v); setEditingEvent(null) }}
+        >
+          {showAddForm ? 'Cancel' : 'Add event'}
+        </button>
+        <button
+          className="btn btn-secondary"
+          onClick={() => { setLoading(true); load() }}
+          title="Refresh"
+        >
+          Refresh
+        </button>
+      </div>
 
       {showAddForm && (
         <EventForm

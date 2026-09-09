@@ -52,6 +52,12 @@ function normalizeEvent(raw) {
     end = d.toISOString().slice(0, 10)
   }
 
+  let status = 'confirmed'
+  if (raw.attendees) {
+    const self = raw.attendees.find(a => a.self)
+    if (self) status = self.responseStatus || 'needsAction'
+  }
+
   return {
     id: raw.id,
     title: raw.summary || '(no title)',
@@ -60,6 +66,7 @@ function normalizeEvent(raw) {
     end,
     location: raw.location || '',
     description: raw.description || '',
+    status,
   }
 }
 
