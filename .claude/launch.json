@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "streamlit",
+      "runtimeExecutable": "C:\\Users\\matto\\OneDrive\\Sandbox\\Household manager\\venv\\Scripts\\streamlit.exe",
+      "runtimeArgs": ["run", "Household_Manager.py", "--server.headless", "true", "--server.port", "$PORT"],
+      "port": 8501,
+      "autoPort": true
+    }
+  ]
+}

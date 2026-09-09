@@ -1,0 +1,14 @@
+streamlit
+python-dotenv
+supabase
+
+# Google Calendar (Stage 7)
+google-api-python-client
+google-auth-oauthlib
+streamlit-calendar
+
+# Added in later stages, scaffolded now per Stage 0
+anthropic
+requests
+recipe-scrapers  # Stage 8: scrape ingredients from a pasted recipe URL (no AI)
+tzdata  # zoneinfo needs this on Windows / slim Linux images (assistant date handling)

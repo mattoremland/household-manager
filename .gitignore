@@ -1,0 +1,8 @@
+.env
+venv/
+*.db
+token.json
+credentials.json
+__pycache__/
+*.pyc
+.streamlit/secrets.toml
