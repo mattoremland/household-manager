@@ -52,6 +52,13 @@ html, body, .stApp, .stApp *:not([data-testid="stIconMaterial"]):not([role="img"
 [data-testid="stSidebarNav"] {
     display: none !important;
 }
+/* Hide Streamlit Community Cloud branding (bottom-left profile + crown icons). */
+[data-testid="stMainMenu"],
+._profileContainer_gzau3_53,
+#stStreamlitMainMenu {
+    display: none !important;
+}
+footer { visibility: hidden !important; }
 /* Give the chat some breathing room on desktop. Deliberately NOT applied at phone
    widths — there the sidebar is a slide-over drawer and a min-width wider than the
    viewport pushes its left edge off screen. */
