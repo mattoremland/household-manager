@@ -272,6 +272,9 @@ function EventForm({ event, defaults, onSaved, onCancel, onDelete }) {
   const [endTime, setEndTime] = useState(initEndTime)
   const [location, setLocation] = useState(event?.location || '')
   const [description, setDescription] = useState(event?.description || '')
+  const [attendeesStr, setAttendeesStr] = useState(
+    event?.attendees?.map(a => a.email).join(', ') || ''
+  )
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
 
@@ -291,6 +294,11 @@ function EventForm({ event, defaults, onSaved, onCancel, onDelete }) {
         end = `${date}T${endTime}:00`
       }
 
+      const attendees = attendeesStr
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s.includes('@'))
+
       if (isEdit) {
         await updateEvent({
           eventId: event.id,
@@ -300,6 +308,7 @@ function EventForm({ event, defaults, onSaved, onCancel, onDelete }) {
           allDay,
           location: location.trim(),
           description: description.trim(),
+          attendees,
         })
       } else {
         await createEvent({
@@ -309,6 +318,7 @@ function EventForm({ event, defaults, onSaved, onCancel, onDelete }) {
           allDay,
           location: location.trim() || undefined,
           description: description.trim() || undefined,
+          attendees: attendees.length > 0 ? attendees : undefined,
         })
       }
       onSaved()
@@ -354,6 +364,16 @@ function EventForm({ event, defaults, onSaved, onCancel, onDelete }) {
       <label className="form-label">
         Location (optional)
         <input type="text" value={location} onChange={e => setLocation(e.target.value)} />
+      </label>
+
+      <label className="form-label">
+        Attendees (optional)
+        <input
+          type="text"
+          value={attendeesStr}
+          onChange={e => setAttendeesStr(e.target.value)}
+          placeholder="email1@example.com, email2@example.com"
+        />
       </label>
 
       <label className="form-label">

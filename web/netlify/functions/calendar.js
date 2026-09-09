@@ -58,6 +58,10 @@ function normalizeEvent(raw) {
     if (self) status = self.responseStatus || 'needsAction'
   }
 
+  const attendees = (raw.attendees || [])
+    .filter(a => !a.self)
+    .map(a => ({ email: a.email, status: a.responseStatus || 'needsAction' }))
+
   return {
     id: raw.id,
     title: raw.summary || '(no title)',
@@ -67,6 +71,7 @@ function normalizeEvent(raw) {
     location: raw.location || '',
     description: raw.description || '',
     status,
+    attendees,
   }
 }
 
@@ -115,7 +120,7 @@ export default async (req) => {
 
     if (method === 'POST' && action === 'create') {
       const body = await req.json()
-      const { summary, start, end, allDay, location, description } = body
+      const { summary, start, end, allDay, location, description, attendees } = body
 
       const startField = allDay ? { date: start } : { dateTime: start }
       const endField = allDay ? { date: end } : { dateTime: end }
@@ -128,14 +133,17 @@ export default async (req) => {
       const eventBody = { summary, start: startField, end: endField }
       if (location) eventBody.location = location
       if (description) eventBody.description = description
+      if (attendees && attendees.length > 0) {
+        eventBody.attendees = attendees.map(email => ({ email }))
+      }
 
-      const res = await cal.events.insert({ calendarId, requestBody: eventBody })
+      const res = await cal.events.insert({ calendarId, requestBody: eventBody, sendUpdates: 'all' })
       return json(200, normalizeEvent(res.data))
     }
 
     if (method === 'PUT' && action === 'update') {
       const body = await req.json()
-      const { eventId, summary, start, end, allDay, location, description } = body
+      const { eventId, summary, start, end, allDay, location, description, attendees } = body
 
       if (!eventId) return json(400, { error: 'eventId required' })
 
@@ -143,6 +151,9 @@ export default async (req) => {
       if (summary !== undefined) patch.summary = summary
       if (location !== undefined) patch.location = location
       if (description !== undefined) patch.description = description
+      if (attendees !== undefined) {
+        patch.attendees = attendees.map(email => ({ email }))
+      }
 
       if (start !== undefined && end !== undefined && allDay !== undefined) {
         const startField = allDay ? { date: start } : { dateTime: start }
@@ -159,6 +170,7 @@ export default async (req) => {
         calendarId,
         eventId,
         requestBody: patch,
+        sendUpdates: 'all',
       })
       return json(200, normalizeEvent(res.data))
     }
