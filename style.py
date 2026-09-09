@@ -15,7 +15,14 @@ ACCENT = "#F0836A"       # coral — highlights/badges not covered by the Stream
 MUTED_TEXT = "#8CA0A8"   # secondary text: captions, timestamps, subtitles
 
 _FONT_CSS = """
-<link rel="apple-touch-icon" href="app/static/OremlandHouseIcon.png">
+<script>
+if (!document.querySelector('link[rel="apple-touch-icon"]')) {
+    var link = document.createElement('link');
+    link.rel = 'apple-touch-icon';
+    link.href = 'https://oremland.tidalwavegames.net/OremlandHouseIcon.png';
+    document.head.appendChild(link);
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
