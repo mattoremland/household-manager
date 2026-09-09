@@ -7,6 +7,13 @@
       "runtimeArgs": ["run", "Household_Manager.py", "--server.headless", "true", "--server.port", "$PORT"],
       "port": 8501,
       "autoPort": true
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173,
+      "cwd": "web"
     }
   ]
 }

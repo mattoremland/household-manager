@@ -1,0 +1,256 @@
+.grocery-section,
+.meals-section {
+  margin-bottom: 0.5rem;
+}
+
+.section-heading {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+}
+
+/* --- Grocery add form --- */
+
+.grocery-add-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.grocery-add-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.grocery-add-qty {
+  width: 5rem;
+  flex-shrink: 0;
+}
+
+/* --- Grocery item row --- */
+
+.grocery-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.grocery-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.grocery-check input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+  accent-color: var(--accent-teal);
+  cursor: pointer;
+}
+
+.grocery-check-label {
+  word-break: break-word;
+}
+
+.grocery-check-label .qty {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.grocery-item.checked .grocery-check-label {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.grocery-delete {
+  flex-shrink: 0;
+}
+
+.grocery-delete .btn-ghost {
+  color: var(--text-muted);
+}
+
+.grocery-delete .btn-ghost:hover {
+  color: var(--danger);
+}
+
+/* --- Copy list --- */
+
+.copy-toggle {
+  margin-bottom: 0.75rem;
+}
+
+.copy-box-container {
+  margin-bottom: 0.75rem;
+}
+
+.copy-box {
+  width: 100%;
+  min-height: 4rem;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  resize: none;
+  -webkit-user-select: all;
+  user-select: all;
+}
+
+.copy-box:focus {
+  border-color: var(--border-focus);
+  outline: none;
+}
+
+.copy-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.35rem;
+}
+
+.copy-result {
+  font-size: 0.8rem;
+  color: var(--accent-teal);
+  margin-top: 0.35rem;
+  min-height: 1.2em;
+}
+
+/* --- Meal plan --- */
+
+.meal-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.meal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.meal-date {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.meal-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.meal-notes {
+  margin-bottom: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.meal-link {
+  margin-bottom: 0.5rem;
+}
+
+.meal-ingredients {
+  margin: 0.3rem 0 0.5rem;
+}
+
+.meal-ingredients li {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 0.1rem 0;
+}
+
+.meal-ingredients ul {
+  list-style: disc;
+  padding-left: 1.4rem;
+  margin: 0;
+}
+
+/* --- Add/Edit meal form --- */
+
+.meal-form-toggle {
+  margin-bottom: 0.75rem;
+}
+
+.meal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.meal-form .form-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.meal-form textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.recipe-fetch-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.recipe-fetch-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.past-toggle {
+  margin-bottom: 0.75rem;
+}
+
+.muted-text {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 480px) {
+  .grocery-add-form {
+    flex-wrap: wrap;
+  }
+
+  .grocery-add-name {
+    flex: 1 1 100%;
+  }
+
+  .grocery-add-qty {
+    flex: 1;
+    width: auto;
+  }
+}

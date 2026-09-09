@@ -1,0 +1,171 @@
+.list-section {
+  margin-bottom: 0.5rem;
+}
+
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.list-heading {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.new-list-form {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.add-item-form {
+  margin-bottom: 0.75rem;
+}
+
+.add-item-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.add-item-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.add-item-tag {
+  width: 5rem;
+  flex-shrink: 0;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.todo-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.todo-check input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+  accent-color: var(--accent-teal);
+  cursor: pointer;
+}
+
+.todo-text {
+  word-break: break-word;
+}
+
+.todo-item.completed .todo-text,
+.todo-text.struck {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.todo-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.todo-actions .btn-sm {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.4rem;
+  min-width: 0;
+}
+
+.todo-actions .danger {
+  color: var(--danger);
+}
+
+.completed-section {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.completed-heading {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.completed-section .todo-item {
+  background: transparent;
+  border-color: var(--border);
+}
+
+.edit-item-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.list-empty {
+  margin-bottom: 0.75rem;
+}
+
+.kebab-divider {
+  margin: 0.25rem 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.form-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.form-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+@media (max-width: 480px) {
+  .add-item-row {
+    flex-wrap: wrap;
+  }
+
+  .add-item-input {
+    flex: 1 1 100%;
+  }
+
+  .add-item-tag {
+    flex: 1;
+    width: auto;
+  }
+}
