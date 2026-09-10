@@ -3,7 +3,7 @@ import PageHeader from '../components/PageHeader'
 import Linkify from '../components/Linkify'
 import KebabMenu from '../components/KebabMenu'
 import ConfirmDialog from '../components/ConfirmDialog'
-import { listNotes, searchNotes, addNote, updateNote, deleteNote } from '../lib/db'
+import { listNotes, searchNotes, addNote, updateNote, deleteNote, swapNoteOrder } from '../lib/db'
 import { useDebouncedValue } from '../lib/utils'
 import './Notes.css'
 
@@ -29,9 +29,18 @@ export default function Notes() {
 
   useEffect(() => { load() }, [load])
 
+  async function handleMove(index, direction) {
+    const target = notes[index]
+    const neighbor = notes[index + direction]
+    await swapNoteOrder(target.id, target.sort_order, neighbor.id, neighbor.sort_order)
+    load()
+  }
+
+  const isSearching = !!debouncedSearch
+
   return (
     <div className="page">
-      <PageHeader title="Notes" subtitle="Freeform notes, sorted by most recently updated" />
+      <PageHeader title="Notes" subtitle="Freeform notes" />
 
       <input
         type="text"
@@ -55,7 +64,7 @@ export default function Notes() {
         <p className="muted-text">{search ? 'No matches found.' : 'No notes yet — add one above.'}</p>
       )}
 
-      {notes.map(note => (
+      {notes.map((note, i) => (
         editingId === note.id ? (
           <EditNoteForm
             key={note.id}
@@ -69,6 +78,8 @@ export default function Notes() {
             note={note}
             onEdit={() => setEditingId(note.id)}
             onDelete={() => setDeletingNote(note)}
+            onMoveUp={!isSearching && i > 0 ? () => handleMove(i, -1) : null}
+            onMoveDown={!isSearching && i < notes.length - 1 ? () => handleMove(i, 1) : null}
           />
         )
       ))}
@@ -88,15 +99,23 @@ export default function Notes() {
   )
 }
 
-function NoteCard({ note, onEdit, onDelete }) {
+function NoteCard({ note, onEdit, onDelete, onMoveUp, onMoveDown }) {
   return (
     <div className="card note-card">
       <div className="note-header">
         <strong className="note-title">{note.title}</strong>
-        <KebabMenu>
-          <button onClick={onEdit}>Edit</button>
-          <button className="danger" onClick={onDelete}>Delete</button>
-        </KebabMenu>
+        <div className="note-actions">
+          {(onMoveUp || onMoveDown) && (
+            <div className="reorder-btns">
+              <button className="btn btn-ghost btn-sm" onClick={onMoveUp} disabled={!onMoveUp} aria-label="Move up">&#9650;</button>
+              <button className="btn btn-ghost btn-sm" onClick={onMoveDown} disabled={!onMoveDown} aria-label="Move down">&#9660;</button>
+            </div>
+          )}
+          <KebabMenu>
+            <button onClick={onEdit}>Edit</button>
+            <button className="danger" onClick={onDelete}>Delete</button>
+          </KebabMenu>
+        </div>
       </div>
       {note.body && (
         <div className="note-body">

@@ -8,6 +8,8 @@ const URL_RE = /(?:https?:\/\/|www\.)[^\s<>"]+/gi
 const PHONE_RE = /(?:\(\d{3}\)\s?\d{3}[-.\s]?\d{4})|(?:\d{3}[-.\s]\d{3}[-.\s]\d{4})/g
 const PHONE_FULL_RE = /^(?:\(\d{3}\)\s?\d{3}[-.\s]?\d{4})|(?:\d{3}[-.\s]\d{3}[-.\s]\d{4})$/
 const ZIP_RE = /\b\d{5}(?:-\d{4})?\b/
+const STREET_RE = /\d+\s+\w+\s+(?:st|street|ave|avenue|blvd|boulevard|dr|drive|rd|road|ln|lane|ct|court|way|pl|place|cir|circle)\b/i
+const CITY_STATE_RE = /\b[A-Z][a-z]+(?:\s[A-Z][a-z]+)*,?\s+[A-Z]{2}\b/
 const BULLET_RE = /^[-*•]\s+(.*)/
 const NUMBERED_RE = /^\d+[.)]\s+(.*)/
 
@@ -23,7 +25,7 @@ function linkifyBlock(text) {
   const escaped = escapeHtml(text)
   const withBreaks = escaped.replace(/\n/g, '<br>')
 
-  if (ZIP_RE.test(text)) {
+  if (ZIP_RE.test(text) && (STREET_RE.test(text) || CITY_STATE_RE.test(text))) {
     const query = encodeURIComponent(text.split(/\s+/).join(' '))
     const href = `http://maps.apple.com/?daddr=${query}`
     return `<a href="${href}" target="_blank" rel="noopener noreferrer">${withBreaks}</a>`

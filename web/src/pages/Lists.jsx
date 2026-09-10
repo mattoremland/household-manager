@@ -4,7 +4,7 @@ import KebabMenu from '../components/KebabMenu'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { TagBadge } from '../components/Badge'
 import {
-  listTodoLists, addTodoList, renameTodoList, deleteTodoList,
+  listTodoLists, addTodoList, renameTodoList, deleteTodoList, swapTodoListOrder,
   listTodoItems, addTodoItem, updateTodoItem, checkTodoItem, deleteTodoItem, clearCheckedTodoItems
 } from '../lib/db'
 import './Lists.css'
@@ -27,6 +27,13 @@ export default function Lists() {
 
   useEffect(() => { load() }, [load])
 
+  async function handleMove(index, direction) {
+    const target = lists[index]
+    const neighbor = lists[index + direction]
+    await swapTodoListOrder(target.id, target.sort_order, neighbor.id, neighbor.sort_order)
+    load()
+  }
+
   return (
     <div className="page">
       <PageHeader title="Lists" subtitle="Shared checklists" />
@@ -42,8 +49,14 @@ export default function Lists() {
       {loading && <p className="muted-text">Loading...</p>}
       {!loading && lists.length === 0 && <p className="muted-text">No lists yet — create one above.</p>}
 
-      {lists.map(list => (
-        <TodoList key={list.id} list={list} onChanged={load} />
+      {lists.map((list, i) => (
+        <TodoList
+          key={list.id}
+          list={list}
+          onChanged={load}
+          onMoveUp={i > 0 ? () => handleMove(i, -1) : null}
+          onMoveDown={i < lists.length - 1 ? () => handleMove(i, 1) : null}
+        />
       ))}
     </div>
   )
@@ -79,7 +92,7 @@ function NewListForm({ onCreated }) {
   )
 }
 
-function TodoList({ list, onChanged }) {
+function TodoList({ list, onChanged, onMoveUp, onMoveDown }) {
   const [items, setItems] = useState([])
   const [editingItemId, setEditingItemId] = useState(null)
   const [renamingList, setRenamingList] = useState(false)
@@ -131,7 +144,14 @@ function TodoList({ list, onChanged }) {
     <div className="list-section">
       <div className="list-header">
         <h3 className="list-heading">{list.name}</h3>
-        <KebabMenu>
+        <div className="list-header-actions">
+          {(onMoveUp || onMoveDown) && (
+            <div className="reorder-btns">
+              <button className="btn btn-ghost btn-sm" onClick={onMoveUp} disabled={!onMoveUp} aria-label="Move up">&#9650;</button>
+              <button className="btn btn-ghost btn-sm" onClick={onMoveDown} disabled={!onMoveDown} aria-label="Move down">&#9660;</button>
+            </div>
+          )}
+          <KebabMenu>
           <button onClick={() => setRenamingList(true)}>Rename</button>
           <button className="danger" onClick={() => setDeletingList(true)}>Delete list</button>
           {checked.length > 0 && (
@@ -141,6 +161,7 @@ function TodoList({ list, onChanged }) {
             </>
           )}
         </KebabMenu>
+        </div>
       </div>
 
       <AddItemForm listId={list.id} onAdded={loadItems} />

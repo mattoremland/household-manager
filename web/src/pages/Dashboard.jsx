@@ -132,13 +132,13 @@ async function loadCalendar() {
 
   return events.slice(0, 5).map(evt => {
     let timeLabel = 'All day'
-    if (evt.start?.dateTime) {
-      timeLabel = new Date(evt.start.dateTime).toLocaleTimeString([], {
+    if (!evt.allDay && evt.start) {
+      timeLabel = new Date(evt.start).toLocaleTimeString([], {
         hour: 'numeric',
         minute: '2-digit',
       })
     }
-    return { id: evt.id, summary: evt.summary || '(No title)', timeLabel }
+    return { id: evt.id, summary: evt.title || '(No title)', timeLabel }
   })
 }
 

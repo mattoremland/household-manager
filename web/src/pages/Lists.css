@@ -108,6 +108,31 @@
   margin-bottom: 0.75rem;
 }
 
+.list-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.reorder-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.reorder-btns .btn-sm {
+  font-size: 0.65rem;
+  padding: 0.1rem 0.35rem;
+  min-width: 0;
+  line-height: 1;
+  color: var(--text-muted);
+}
+
+.reorder-btns .btn-sm:disabled {
+  opacity: 0.25;
+}
+
 .kebab-divider {
   margin: 0.25rem 0;
   border: 0;
