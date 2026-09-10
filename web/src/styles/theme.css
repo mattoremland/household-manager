@@ -186,7 +186,6 @@ input:focus, textarea:focus, select:focus {
 
 .reorder-btns {
   display: flex;
-  flex-direction: column;
   gap: 0;
 }
 
