@@ -5,7 +5,7 @@ import KebabMenu from '../components/KebabMenu'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { Badge } from '../components/Badge'
 import { listHouseholdInfo, searchHouseholdInfo, addHouseholdInfo, updateHouseholdInfo, deleteHouseholdInfo } from '../lib/db'
-import { extractPhone } from '../lib/utils'
+import { extractPhone, useDebouncedValue } from '../lib/utils'
 import './HouseholdInfo.css'
 
 const CATEGORIES = ['Contacts', 'Manuals', 'Medical']
@@ -19,33 +19,35 @@ export default function HouseholdInfo() {
   const [deletingEntry, setDeletingEntry] = useState(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [loading, setLoading] = useState(true)
+  const debouncedSearch = useDebouncedValue(search)
 
   const load = useCallback(async () => {
     try {
       let data
-      if (search) {
-        data = await searchHouseholdInfo(search)
+      if (debouncedSearch) {
+        data = await searchHouseholdInfo(debouncedSearch)
       } else {
-        data = await listHouseholdInfo(categoryFilter === 'All' ? null : categoryFilter)
+        data = await listHouseholdInfo()
       }
       data.sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }))
-      setEntries(data)
 
-      if (!search) {
-        const all = await listHouseholdInfo()
-        const cats = [...new Set(all.map(e => e.category))].sort()
-        setAllCategories(cats)
+      const cats = [...new Set(data.map(e => e.category))].sort()
+      setAllCategories(cats)
+
+      if (!debouncedSearch && categoryFilter !== 'All') {
+        data = data.filter(e => e.category === categoryFilter)
       }
+      setEntries(data)
     } catch (err) {
       console.error('Failed to load household info:', err)
     } finally {
       setLoading(false)
     }
-  }, [search, categoryFilter])
+  }, [debouncedSearch, categoryFilter])
 
   useEffect(() => { load() }, [load])
 
-  const grouped = !search && categoryFilter === 'All'
+  const grouped = !debouncedSearch && categoryFilter === 'All'
 
   let content
   if (loading) {

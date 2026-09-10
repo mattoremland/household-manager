@@ -29,6 +29,16 @@ function loadStorage(key, fallback) {
   }
 }
 
+const MAX_STORED_DISPLAY = 50
+const MAX_STORED_MESSAGES = 40
+
+function saveStorage(key, value, limit) {
+  try {
+    const trimmed = value.length > limit ? value.slice(-limit) : value
+    localStorage.setItem(key, JSON.stringify(trimmed))
+  } catch {}
+}
+
 export default function ChatSidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const [display, setDisplay] = useState(() => loadStorage('chatDisplay', []))
@@ -39,11 +49,11 @@ export default function ChatSidebar() {
   const inputRef = useRef(null)
 
   useEffect(() => {
-    try { localStorage.setItem('chatDisplay', JSON.stringify(display)) } catch {}
+    saveStorage('chatDisplay', display, MAX_STORED_DISPLAY)
   }, [display])
 
   useEffect(() => {
-    try { localStorage.setItem('chatMessages', JSON.stringify(messages)) } catch {}
+    saveStorage('chatMessages', messages, MAX_STORED_MESSAGES)
   }, [messages])
 
   useEffect(() => {

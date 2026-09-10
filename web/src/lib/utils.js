@@ -18,3 +18,17 @@ export function extractPhone(text) {
   if (!match) return null
   return match[0].replace(/\D/g, '')
 }
+
+import { useState, useEffect, useRef } from 'react'
+
+export function useDebouncedValue(value, delayMs = 300) {
+  const [debounced, setDebounced] = useState(value)
+  const timer = useRef(null)
+
+  useEffect(() => {
+    timer.current = setTimeout(() => setDebounced(value), delayMs)
+    return () => clearTimeout(timer.current)
+  }, [value, delayMs])
+
+  return debounced
+}

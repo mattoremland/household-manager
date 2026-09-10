@@ -4,6 +4,7 @@ import Linkify from '../components/Linkify'
 import KebabMenu from '../components/KebabMenu'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { listNotes, searchNotes, addNote, updateNote, deleteNote } from '../lib/db'
+import { useDebouncedValue } from '../lib/utils'
 import './Notes.css'
 
 export default function Notes() {
@@ -13,17 +14,18 @@ export default function Notes() {
   const [deletingNote, setDeletingNote] = useState(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [loading, setLoading] = useState(true)
+  const debouncedSearch = useDebouncedValue(search)
 
   const load = useCallback(async () => {
     try {
-      const data = search ? await searchNotes(search) : await listNotes()
+      const data = debouncedSearch ? await searchNotes(debouncedSearch) : await listNotes()
       setNotes(data)
     } catch (err) {
       console.error('Failed to load notes:', err)
     } finally {
       setLoading(false)
     }
-  }, [search])
+  }, [debouncedSearch])
 
   useEffect(() => { load() }, [load])
 

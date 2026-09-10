@@ -21,11 +21,6 @@ export async function getEvents(timeMin, timeMax) {
   return data.events
 }
 
-export async function getTimezone() {
-  const data = await calendarFetch({ action: 'timezone' })
-  return data.timeZone
-}
-
 export async function createEvent({ summary, start, end, allDay, location, description }) {
   return calendarFetch({ action: 'create' }, {
     method: 'POST',

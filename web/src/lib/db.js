@@ -85,9 +85,18 @@ export async function renameTodoList(id, name) {
 }
 
 export async function deleteTodoList(id) {
-  await supabase.from('todo_items').delete().eq('list_id', id)
+  const { error: itemsError } = await supabase.from('todo_items').delete().eq('list_id', id)
+  if (itemsError) throw itemsError
   const { error } = await supabase.from('todo_lists').delete().eq('id', id)
   if (error) throw error
+}
+
+export async function listAllTodoItems() {
+  const { data, error } = await supabase
+    .from('todo_items')
+    .select('list_id, is_done')
+  if (error) throw error
+  return data
 }
 
 export async function listTodoItems(listId) {
@@ -278,7 +287,7 @@ export async function addNote(title, body = '') {
 export async function updateNote(id, fields) {
   const { data, error } = await supabase
     .from('notes')
-    .update({ ...fields, updated_at: new Date().toISOString() })
+    .update(fields)
     .eq('id', id)
     .select()
     .single()
