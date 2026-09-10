@@ -105,12 +105,8 @@ function NoteCard({ note, onEdit, onDelete, onMoveUp, onMoveDown }) {
       <div className="note-header">
         <strong className="note-title">{note.title}</strong>
         <div className="note-actions">
-          {(onMoveUp || onMoveDown) && (
-            <div className="reorder-btns">
-              <button className="btn btn-ghost btn-sm" onClick={onMoveUp} disabled={!onMoveUp} aria-label="Move up">&#9650;</button>
-              <button className="btn btn-ghost btn-sm" onClick={onMoveDown} disabled={!onMoveDown} aria-label="Move down">&#9660;</button>
-            </div>
-          )}
+          {onMoveUp ? <button className="btn btn-ghost btn-sm reorder-btn" onClick={onMoveUp} aria-label="Move up">&#9650;</button> : <span className="reorder-btn-placeholder" />}
+          {onMoveDown ? <button className="btn btn-ghost btn-sm reorder-btn" onClick={onMoveDown} aria-label="Move down">&#9660;</button> : <span className="reorder-btn-placeholder" />}
           <KebabMenu>
             <button onClick={onEdit}>Edit</button>
             <button className="danger" onClick={onDelete}>Delete</button>

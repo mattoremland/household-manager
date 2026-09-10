@@ -184,12 +184,7 @@ input:focus, textarea:focus, select:focus {
   font-size: 0.9rem;
 }
 
-.reorder-btns {
-  display: flex;
-  gap: 0;
-}
-
-.reorder-btns .btn-sm {
+.reorder-btn {
   font-size: 0.65rem;
   padding: 0.1rem 0.35rem;
   min-width: 0;
@@ -197,6 +192,6 @@ input:focus, textarea:focus, select:focus {
   color: var(--text-muted);
 }
 
-.reorder-btns .btn-sm:disabled {
-  opacity: 0.25;
+.reorder-btn-placeholder {
+  width: 1.1rem;
 }

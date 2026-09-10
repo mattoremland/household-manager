@@ -145,12 +145,8 @@ function TodoList({ list, onChanged, onMoveUp, onMoveDown }) {
       <div className="list-header">
         <h3 className="list-heading">{list.name}</h3>
         <div className="list-header-actions">
-          {(onMoveUp || onMoveDown) && (
-            <div className="reorder-btns">
-              <button className="btn btn-ghost btn-sm" onClick={onMoveUp} disabled={!onMoveUp} aria-label="Move up">&#9650;</button>
-              <button className="btn btn-ghost btn-sm" onClick={onMoveDown} disabled={!onMoveDown} aria-label="Move down">&#9660;</button>
-            </div>
-          )}
+          {onMoveUp ? <button className="btn btn-ghost btn-sm reorder-btn" onClick={onMoveUp} aria-label="Move up">&#9650;</button> : <span className="reorder-btn-placeholder" />}
+          {onMoveDown ? <button className="btn btn-ghost btn-sm reorder-btn" onClick={onMoveDown} aria-label="Move down">&#9660;</button> : <span className="reorder-btn-placeholder" />}
           <KebabMenu>
           <button onClick={() => setRenamingList(true)}>Rename</button>
           <button className="danger" onClick={() => setDeletingList(true)}>Delete list</button>
