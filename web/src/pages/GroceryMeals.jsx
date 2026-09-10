@@ -10,6 +10,9 @@ import {
 } from '../lib/db'
 import './GroceryMeals.css'
 
+const CART_ICON = <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></svg>
+const MEAL_ICON = <svg viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /><line x1="7" y1="2" x2="7" y2="22" /><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7" /></svg>
+
 export default function GroceryMeals() {
   const [groceryItems, setGroceryItems] = useState([])
   const [mealEntries, setMealEntries] = useState([])
@@ -79,7 +82,10 @@ function GrocerySection({ items, onChanged }) {
 
   return (
     <div className="grocery-section">
-      <h3 className="section-heading">Grocery list</h3>
+      <div className="section-heading-row">
+        <span className="icon-badge" aria-hidden="true">{CART_ICON}</span>
+        <h3 className="section-heading">Grocery list</h3>
+      </div>
 
       <GroceryAddForm onAdded={onChanged} />
 
@@ -265,7 +271,10 @@ function MealPlanSection({ entries, onChanged, onGroceryChanged }) {
 
   return (
     <div className="meals-section">
-      <h3 className="section-heading">Meal plan</h3>
+      <div className="section-heading-row">
+        <span className="icon-badge" aria-hidden="true">{MEAL_ICON}</span>
+        <h3 className="section-heading">Meal plan</h3>
+      </div>
 
       <div className="meal-form-toggle">
         <button

@@ -138,6 +138,8 @@ export default function HouseholdInfo() {
   )
 }
 
+const INFO_ICON = <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+
 function EntryCard({ entry, showCategory, editingId, setEditingId, onDelete, onSaved }) {
   if (editingId === entry.id) {
     return <EditForm entry={entry} onCancel={() => setEditingId(null)} onSaved={() => { setEditingId(null); onSaved() }} />
@@ -148,6 +150,7 @@ function EntryCard({ entry, showCategory, editingId, setEditingId, onDelete, onS
   return (
     <div className="card entry-card">
       <div className="entry-header">
+        <span className="icon-badge" aria-hidden="true">{INFO_ICON}</span>
         <div className="entry-title-row">
           {phone ? (
             <a href={`sms:${phone}`} className="entry-title-link" title={`Text ${entry.title}`}>

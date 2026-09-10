@@ -8,8 +8,7 @@
 
 .note-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
   gap: 0.5rem;
 }
 
@@ -17,6 +16,7 @@
   color: var(--text-primary);
   font-weight: 600;
   word-break: break-word;
+  flex: 1;
 }
 
 .note-body {

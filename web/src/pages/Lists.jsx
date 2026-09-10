@@ -9,6 +9,8 @@ import {
 } from '../lib/db'
 import './Lists.css'
 
+const LIST_ICON = <svg viewBox="0 0 24 24"><path d="M3.5 5.5l2 2L9 4" /><line x1="12" y1="6" x2="20" y2="6" /><path d="M3.5 11.5l2 2L9 10" /><line x1="12" y1="12" x2="20" y2="12" /><path d="M3.5 17.5l2 2L9 16" /><line x1="12" y1="18" x2="20" y2="18" /></svg>
+
 export default function Lists() {
   const [lists, setLists] = useState([])
   const [showNewList, setShowNewList] = useState(false)
@@ -143,6 +145,7 @@ function TodoList({ list, onChanged, onMoveUp, onMoveDown }) {
   return (
     <div className="list-section">
       <div className="list-header">
+        <span className="icon-badge" aria-hidden="true">{LIST_ICON}</span>
         <h3 className="list-heading">{list.name}</h3>
         <div className="list-header-actions">
           {onMoveUp ? <button className="btn btn-ghost btn-sm reorder-btn" onClick={onMoveUp} aria-label="Move up">&#9650;</button> : <span className="reorder-btn-placeholder" />}

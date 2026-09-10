@@ -1,25 +1,44 @@
+/* ── Greeting ── */
+
+.dash-greeting {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--accent-teal);
+  margin: 0 0 0.15rem;
+}
+
+/* ── Grid ── */
+
 .dashboard-grid {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
+/* ── Cards ── */
+
 .dash-card {
   padding: 1rem;
 }
+
 
 .dash-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 0.75rem;
+  position: relative;
+  gap: 0.5rem;
 }
+
+
 
 .dash-card-title {
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
+  flex: 1;
 }
 
 .dash-card-link {
@@ -28,6 +47,8 @@
   color: var(--accent-teal);
   white-space: nowrap;
 }
+
+/* ── Lists ── */
 
 .dash-list {
   list-style: none;
@@ -81,6 +102,7 @@
   color: var(--accent-teal);
 }
 
+
 .dash-note {
   display: flex;
   justify-content: space-between;
@@ -103,6 +125,8 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+/* ── Desktop ── */
 
 @media (min-width: 768px) {
   .dashboard-grid {

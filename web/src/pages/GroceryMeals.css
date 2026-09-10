@@ -7,7 +7,7 @@
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 0.75rem;
+  margin: 0;
 }
 
 /* --- Grocery add form --- */
@@ -135,6 +135,29 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 1rem;
+  margin-bottom: 0.75rem;
+  border-top: 3px solid var(--accent-teal);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.meal-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: linear-gradient(180deg, rgba(46, 139, 144, 0.12) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.section-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.75rem;
 }
 
