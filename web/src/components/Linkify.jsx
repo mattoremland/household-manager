@@ -9,7 +9,8 @@ const PHONE_RE = /(?:\(\d{3}\)\s?\d{3}[-.\s]?\d{4})|(?:\d{3}[-.\s]\d{3}[-.\s]\d{
 const PHONE_FULL_RE = /^(?:\(\d{3}\)\s?\d{3}[-.\s]?\d{4})|(?:\d{3}[-.\s]\d{3}[-.\s]\d{4})$/
 const ZIP_RE = /\b\d{5}(?:-\d{4})?\b/
 const STREET_RE = /\d+\s+\w+\s+(?:st|street|ave|avenue|blvd|boulevard|dr|drive|rd|road|ln|lane|ct|court|way|pl|place|cir|circle)\b/i
-const CITY_STATE_RE = /\b[A-Z][a-z]+(?:\s[A-Z][a-z]+)*,?\s+[A-Z]{2}\b/
+const US_STATES = 'AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY|DC'
+const CITY_STATE_RE = new RegExp(`\\b[A-Z][a-z]+(?:\\s[A-Z][a-z]+)*,?\\s+(?:${US_STATES})\\b`)
 const BULLET_RE = /^[-*•]\s+(.*)/
 const NUMBERED_RE = /^\d+[.)]\s+(.*)/
 

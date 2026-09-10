@@ -163,7 +163,7 @@ async function loadGrocery() {
 }
 
 async function loadNotes() {
-  const notes = await listNotes()
+  const notes = await listNotes({ orderBy: 'updated_at' })
   return notes.slice(0, 5)
 }
 

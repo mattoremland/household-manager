@@ -339,7 +339,7 @@ async function executeTool(name, input, supabase) {
       const { data, error } = await supabase
         .from('todo_lists')
         .select('id, name')
-        .order('name')
+        .order('sort_order')
       if (error) throw error
       return data
     }
@@ -475,9 +475,16 @@ async function executeTool(name, input, supabase) {
     }
 
     case 'add_note': {
+      const { data: maxRow } = await supabase
+        .from('notes')
+        .select('sort_order')
+        .order('sort_order', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      const nextOrder = (maxRow?.sort_order ?? 0) + 1
       const { data, error } = await supabase
         .from('notes')
-        .insert({ title: input.title, body: input.body })
+        .insert({ title: input.title, body: input.body, sort_order: nextOrder })
         .select()
         .single()
       if (error) throw error

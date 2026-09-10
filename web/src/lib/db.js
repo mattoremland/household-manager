@@ -64,12 +64,13 @@ export async function listTodoLists() {
 }
 
 export async function addTodoList(name) {
-  const { data: maxRow } = await supabase
+  const { data: maxRow, error: maxErr } = await supabase
     .from('todo_lists')
     .select('sort_order')
     .order('sort_order', { ascending: false })
     .limit(1)
-    .single()
+    .maybeSingle()
+  if (maxErr) throw maxErr
   const nextOrder = (maxRow?.sort_order ?? 0) + 1
   const { data, error } = await supabase
     .from('todo_lists')
@@ -102,7 +103,10 @@ export async function swapTodoListOrder(idA, orderA, idB, orderB) {
   const { error: e1 } = await supabase.from('todo_lists').update({ sort_order: orderB }).eq('id', idA)
   if (e1) throw e1
   const { error: e2 } = await supabase.from('todo_lists').update({ sort_order: orderA }).eq('id', idB)
-  if (e2) throw e2
+  if (e2) {
+    await supabase.from('todo_lists').update({ sort_order: orderA }).eq('id', idA)
+    throw e2
+  }
 }
 
 export async function listAllTodoItems() {
@@ -268,11 +272,14 @@ export async function deleteMealPlanEntry(id) {
 
 // --- Notes ---
 
-export async function listNotes() {
-  const { data, error } = await supabase
-    .from('notes')
-    .select('*')
-    .order('sort_order')
+export async function listNotes({ orderBy = 'sort_order' } = {}) {
+  let query = supabase.from('notes').select('*')
+  if (orderBy === 'updated_at') {
+    query = query.order('updated_at', { ascending: false })
+  } else {
+    query = query.order('sort_order')
+  }
+  const { data, error } = await query
   if (error) throw error
   return data
 }
@@ -289,12 +296,13 @@ export async function searchNotes(query) {
 }
 
 export async function addNote(title, body = '') {
-  const { data: maxRow } = await supabase
+  const { data: maxRow, error: maxErr } = await supabase
     .from('notes')
     .select('sort_order')
     .order('sort_order', { ascending: false })
     .limit(1)
-    .single()
+    .maybeSingle()
+  if (maxErr) throw maxErr
   const nextOrder = (maxRow?.sort_order ?? 0) + 1
   const { data, error } = await supabase
     .from('notes')
@@ -325,5 +333,8 @@ export async function swapNoteOrder(idA, orderA, idB, orderB) {
   const { error: e1 } = await supabase.from('notes').update({ sort_order: orderB }).eq('id', idA)
   if (e1) throw e1
   const { error: e2 } = await supabase.from('notes').update({ sort_order: orderA }).eq('id', idB)
-  if (e2) throw e2
+  if (e2) {
+    await supabase.from('notes').update({ sort_order: orderA }).eq('id', idA)
+    throw e2
+  }
 }

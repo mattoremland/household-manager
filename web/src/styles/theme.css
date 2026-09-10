@@ -183,3 +183,21 @@ input:focus, textarea:focus, select:focus {
   color: var(--text-muted);
   font-size: 0.9rem;
 }
+
+.reorder-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.reorder-btns .btn-sm {
+  font-size: 0.65rem;
+  padding: 0.1rem 0.35rem;
+  min-width: 0;
+  line-height: 1;
+  color: var(--text-muted);
+}
+
+.reorder-btns .btn-sm:disabled {
+  opacity: 0.25;
+}
