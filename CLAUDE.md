@@ -1,38 +1,39 @@
 # Household Manager
 
-Private, no-login app for two users (Matt + wife) to manage household info, calendar, shared checklists, groceries, and notes, with an AI assistant.
+Private, no-login app for two users (Matt + wife) to manage household info, calendar, shared checklists, groceries, meal plans, and notes, with an AI assistant sidebar.
 
-## Active build: React/Netlify migration
+## Architecture
 
-The app was originally built in Streamlit (Python). Matt decided to migrate to React + Netlify for full control (branding, PWA, mobile UX). The migration plan is in [netlify-migration-plan.md](netlify-migration-plan.md). The original Streamlit build plan is in [household-app-build-plan.md](household-app-build-plan.md) (all stages complete, for reference only).
+The app is built with React + Netlify. The original Streamlit (Python) version is archived in `streamlit-archive/`. The migration plan is in [netlify-migration-plan.md](netlify-migration-plan.md).
 
-**Current stage: M7 (Grocery & Meals).** M0–M6 are done. See memory `project_status.md` for detailed per-stage status.
+**Current status:** M0–M9 done, M10 parked (Instacart API locked), M11 in progress. See memory `project_status.md` for detailed per-stage status.
 
-## Tech stack (migration target)
+## Tech stack
 
 - **Frontend:** React (Vite) in `web/` directory
-- **Database:** Supabase (Postgres) — same tables, same schema, accessed via `@supabase/supabase-js` directly from the browser
-- **Calendar:** Google Calendar API via Netlify Function (`web/netlify/functions/calendar.js`), uses `googleapis` npm package
-- **AI:** Anthropic API (Claude) via Netlify Function (not yet built — M8)
-- **Recipe scraping:** Netlify Function (not yet built — M7)
-- **Grocery ordering:** Instacart via remote MCP server, driven by AI assistant (M10)
-- **Hosting:** Netlify — `oremland.tidalwavegames.net` (currently points at old static redirect site; will point at React app after M9)
-- **Secrets:** local `web/.env` (gitignored) locally; Netlify environment variables once deployed
+- **Database:** Supabase (Postgres) — accessed via `@supabase/supabase-js` directly from the browser
+- **Calendar:** Google Calendar API via Netlify Function (`web/netlify/functions/calendar.js`)
+- **AI:** Anthropic API (Claude) via Netlify Function (`web/netlify/functions/assistant.js`) — 16-tool agentic loop
+- **Recipe scraping:** Netlify Function (`web/netlify/functions/recipe.js`)
+- **Hosting:** Netlify — `oremland.tidalwavegames.net`, auto-deploy from GitHub repo `mattoremland/household-manager`
+- **Secrets:** local `web/.env` (gitignored) locally; Netlify environment variables in production
 - **Routing:** React Router with 6 routes (Dashboard, Calendar, Lists, Household Info, Grocery & Meals, Notes)
 - **Navigation:** Fixed bottom tab bar on mobile, top nav on desktop (768px+)
 - **Styling:** CSS custom properties matching the Cool Minimal dark theme (--bg-primary: #10161A, etc.)
 
 ## Key files (web/)
 
-- `src/App.jsx` — Router + layout shell
+- `src/App.jsx` — Router + layout shell (lazy-loaded routes except Dashboard)
 - `src/lib/supabase.js` — Supabase client init
-- `src/lib/db.js` — All CRUD functions (mirrors Python db.py)
+- `src/lib/db.js` — All CRUD functions
 - `src/lib/calendar.js` — Client-side fetch wrappers for calendar Netlify Function
-- `src/styles/theme.css` — CSS variables + utility classes
-- `src/components/` — Nav, PageHeader, ConfirmDialog, Badge, Linkify, etc.
-- `src/pages/` — Route-level page components (Calendar.jsx, Lists.jsx, etc.)
-- `netlify/functions/calendar.js` — Google Calendar API Netlify Function
-- `netlify.toml` — Build config + SPA redirect + dev proxy settings
+- `src/styles/theme.css` — CSS variables + shared utility classes
+- `src/components/` — Nav, PageHeader, ChatSidebar, ConfirmDialog, Badge, Linkify, etc.
+- `src/pages/` — Route-level page components (Dashboard, Calendar, Lists, HouseholdInfo, GroceryMeals, Notes)
+- `netlify/functions/calendar.js` — Google Calendar API proxy
+- `netlify/functions/recipe.js` — Recipe URL scraper
+- `netlify/functions/assistant.js` — AI assistant (Claude agentic loop)
+- `netlify.toml` — Build config + SPA redirect
 
 ## Device target
 
@@ -52,12 +53,8 @@ App is used almost exclusively on iPhones (Matt: iPhone 17 Max, wife: iPhone 17)
 
 ## Known issues
 
-- **Netlify Functions can't be tested locally via Vite dev server** — requests to `/.netlify/functions/*` return HTML. The Calendar page UI is built and verified but CRUD operations against Google Calendar are untested until deployment (M9) or `netlify dev` is working. `netlify-cli` is installed as a dev dependency; `netlify.toml` has a `[dev]` section configured, but `netlify dev` didn't work via launch.json (blank page). May need CLI auth or manual terminal usage.
-- **FullCalendar must use v6** — all `@fullcalendar/*` packages pinned to v6. v7 of `@fullcalendar/react` is incompatible with v6 plugins ("Class constructor DayTableView cannot be invoked without 'new'").
-
-## M9 deployment plan (Matt's request)
-
-M9 should set up a **GitHub repo connected to Netlify for auto-deploy** so Matt doesn't have to `npm run build` and drag `dist/` folders. Claude Code should be able to push changes directly. Walk Matt through the GitHub + Netlify connection setup.
+- **Netlify Functions can't be tested locally via Vite dev server** — requests to `/.netlify/functions/*` return HTML. Test on deployed site or via `netlify dev`.
+- **FullCalendar must use v6** — all `@fullcalendar/*` packages pinned to v6. v7 of `@fullcalendar/react` is incompatible with v6 plugins.
 
 ## Progress tracking
 

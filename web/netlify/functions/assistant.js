@@ -5,6 +5,7 @@ const MODEL = 'claude-sonnet-5'
 const MAX_TOKENS = 8000
 const MAX_TOOL_ROUNDS = 12
 const USERS = 'Matt and Lucy'
+const INSTACART_MCP_URL = 'https://mcp.instacart.com/mcp'
 
 function getSupabase() {
   return createClient(
@@ -214,7 +215,7 @@ const TOOLS = [
       properties: {
         category: {
           type: 'string',
-          enum: ['Contacts', 'Manuals', 'Medical', 'Notes'],
+          enum: ['Contacts', 'Manuals', 'Medical'],
         },
         title: { type: 'string' },
         content: { type: 'string' },
@@ -347,20 +348,20 @@ async function executeTool(name, input, supabase) {
       const list = await findList(supabase, input.list_name)
       let query = supabase
         .from('todo_items')
-        .select('id, text, done, tag')
+        .select('id, text, is_done, tag')
         .eq('list_id', list.id)
         .order('id')
-      if (!input.include_done) query = query.eq('done', false)
+      if (!input.include_done) query = query.eq('is_done', false)
       const { data, error } = await query
       if (error) throw error
-      return data
+      return data.map(row => ({ ...row, done: row.is_done }))
     }
 
     case 'add_todo_item': {
       const list = await findList(supabase, input.list_name)
       const { data, error } = await supabase
         .from('todo_items')
-        .insert({ list_id: list.id, text: input.text, tag: input.tag || null, done: false })
+        .insert({ list_id: list.id, text: input.text, tag: input.tag || null, is_done: false })
         .select()
         .single()
       if (error) throw error
@@ -371,7 +372,7 @@ async function executeTool(name, input, supabase) {
       const isDone = input.is_done !== undefined ? input.is_done : true
       const { data, error } = await supabase
         .from('todo_items')
-        .update({ done: isDone })
+        .update({ is_done: isDone })
         .eq('id', input.item_id)
         .select()
         .single()
@@ -503,6 +504,20 @@ function systemPrompt() {
   const isoToday = today.toISOString().slice(0, 10)
   const isoTomorrow = tomorrow.toISOString().slice(0, 10)
 
+  const instacartEnabled = !!process.env.INSTACART_API_KEY
+
+  let instacartSection = ''
+  if (instacartEnabled) {
+    instacartSection = `
+- Instacart — create shopping lists on Instacart. You'll get back a link the user can open to review and order.
+
+Instacart rules:
+- ALWAYS include exact quantities when creating a shopping list. "6 bananas" not "bananas". "2 lbs chicken breast" not "chicken breast". If the grocery list has a quantity field, use it. If not, ask the user.
+- Before creating an Instacart shopping list, show the user the full item list WITH quantities and ask them to confirm. This is a hard rule — never skip confirmation.
+- When the Instacart tool returns a link, share it with the user so they can review the cart and place the order themselves.
+- You cannot place orders — you can only create shopping lists. The user completes checkout on Instacart.`
+  }
+
   return `You are the household assistant for ${USERS}, a couple who share this app.
 You can both answer questions about their household and make changes on their behalf.
 
@@ -512,9 +527,9 @@ Tomorrow is ${isoTomorrow}. Resolve relative dates ("Friday", "next week") again
 What you can reach:
 - Shared Google Calendar — read upcoming events, add, change, and delete them.
 - Shared checklists ("Lists") — e.g. House repair, Amazon, Short term. Chores are just list items here; an item's optional tag is usually who it's assigned to.
-- Household Info — the reference hub: contacts, manuals, medical info, wifi.
+- Household Info — the reference hub: contacts, manuals, medical info.
 - Grocery list and meal plan — including ingredients for planned meals.
-- Notes — freeform notes.
+- Notes — freeform notes.${instacartSection}
 
 How to behave:
 - Whoever is typing is Matt or Lucy. Don't ask which unless it actually matters.
@@ -553,6 +568,23 @@ export default async (req) => {
 
   const client = new Anthropic({ apiKey })
   const supabase = getSupabase()
+  const instacartKey = process.env.INSTACART_API_KEY
+
+  const allTools = [...TOOLS]
+  const mcpServers = []
+
+  if (instacartKey) {
+    mcpServers.push({
+      type: 'url',
+      url: INSTACART_MCP_URL,
+      name: 'instacart',
+      authorization_token: instacartKey,
+    })
+    allTools.push({
+      type: 'mcp_toolset',
+      mcp_server_name: 'instacart',
+    })
+  }
 
   const events = []
   const newMessages = []
@@ -560,15 +592,25 @@ export default async (req) => {
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const allMessages = [...messages, ...newMessages]
 
+    const apiParams = {
+      model: MODEL,
+      max_tokens: MAX_TOKENS,
+      system: systemPrompt(),
+      tools: allTools,
+      messages: allMessages,
+    }
+
     let response
     try {
-      response = await client.messages.create({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        system: systemPrompt(),
-        tools: TOOLS,
-        messages: allMessages,
-      })
+      if (mcpServers.length > 0) {
+        response = await client.beta.messages.create({
+          ...apiParams,
+          mcp_servers: mcpServers,
+          betas: ['mcp-client-2025-11-20'],
+        })
+      } else {
+        response = await client.messages.create(apiParams)
+      }
     } catch (err) {
       events.push({
         type: 'error',
@@ -581,6 +623,10 @@ export default async (req) => {
       if (block.type === 'text') return { type: 'text', text: block.text }
       if (block.type === 'tool_use')
         return { type: 'tool_use', id: block.id, name: block.name, input: block.input }
+      if (block.type === 'mcp_tool_use')
+        return { type: 'mcp_tool_use', id: block.id, name: block.name, server_name: block.server_name, input: block.input }
+      if (block.type === 'mcp_tool_result')
+        return { type: 'mcp_tool_result', tool_use_id: block.tool_use_id, is_error: block.is_error, content: block.content }
       return block
     })
 
@@ -589,6 +635,9 @@ export default async (req) => {
     for (const block of contentBlocks) {
       if (block.type === 'text' && block.text.trim()) {
         events.push({ type: 'text', text: block.text })
+      }
+      if (block.type === 'mcp_tool_use') {
+        events.push({ type: 'tool', name: `instacart:${block.name}`, ok: true })
       }
     }
 

@@ -156,3 +156,30 @@ input:focus, textarea:focus, select:focus {
   clip: rect(0, 0, 0, 0);
   border: 0;
 }
+
+/* Shared form styles */
+
+.form-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.form-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.muted-text {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}

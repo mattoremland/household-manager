@@ -1,0 +1,113 @@
+.dashboard-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dash-card {
+  padding: 1rem;
+}
+
+.dash-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.dash-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.dash-card-link {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--accent-teal);
+  white-space: nowrap;
+}
+
+.dash-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dash-event {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.dash-event-time {
+  font-size: 0.8rem;
+  color: var(--accent-teal);
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 4.5rem;
+}
+
+.dash-event-title {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.dash-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.dash-count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.dash-grocery-count {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.dash-count-number {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent-teal);
+}
+
+.dash-note {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.dash-note-title {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.dash-note-date {
+  font-size: 0.75rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+}

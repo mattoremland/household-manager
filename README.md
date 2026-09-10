@@ -1,30 +1,80 @@
 # Household Manager
 
-Private, no-login Streamlit app for two users to manage household info, calendar, shared checklists, groceries, and notes, with an AI assistant sidebar.
+Private, no-login app for two users to manage household info, calendar, shared checklists, groceries, meal plans, and notes, with an AI assistant sidebar.
 
-Full stage-by-stage build plan: [household-app-build-plan.md](household-app-build-plan.md)
+**Live site:** [oremland.tidalwavegames.net](https://oremland.tidalwavegames.net)
 
-## Hosting & architecture (Stage 2 — decided)
+## Tech stack
 
-- **Hosting:** Streamlit Community Cloud
-- **Database:** Supabase (Postgres) — chosen over SQLite since Community Cloud's filesystem isn't guaranteed persistent across restarts/redeploys
-- **Custom domain:** Streamlit Community Cloud does not support connecting a custom domain/subdomain directly (no CNAME/A record support, SSL limitation on their end). The app lives at `<something>.streamlit.app`. A small Netlify redirect page is deployed at a subdomain of the existing domain to forward to it. Full setup steps are in Stage 13 of the build plan.
-- **Subdomain:** `oremland.tidalwavegames.net` (DNS managed via Cloudflare)
-- **GitHub repo:** created, public
-
-## Running locally
-
-This project uses its own virtual environment (`venv/`) — don't install its dependencies into a shared/global Python environment (e.g. an Anaconda base env used by other projects), since past deps (like `supabase`) have pulled in version pins that conflicted with unrelated projects.
-
-```
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-streamlit run Household_Manager.py
-```
-
-(Note: the entry-point script is `Household_Manager.py`, not `app.py` — renamed during Stage 1 so the sidebar nav reads "Household Manager".)
+- **Frontend:** React (Vite) — lives in `web/`
+- **Backend:** Netlify Functions (serverless) for Google Calendar API, recipe scraping, and AI assistant
+- **Database:** Supabase (Postgres) — accessed directly from the browser via `@supabase/supabase-js`
+- **AI:** Claude (Anthropic) via Netlify Function — 16-tool agentic loop for calendar, lists, grocery, notes, and household info
+- **Hosting:** Netlify with auto-deploy from GitHub
+- **Domain:** `oremland.tidalwavegames.net` (DNS via Cloudflare, HTTPS via Netlify)
 
 ## Setup
 
-More detailed environment/setup instructions land in Stage 14 (Polish pass) once all integrations are built.
+### Prerequisites
+
+- Node.js 18+
+- A Supabase project with the schema from `streamlit-archive/schema.sql`
+- Google Cloud project with Calendar API enabled + OAuth credentials
+- Anthropic API key (for the AI assistant)
+
+### Local development
+
+```bash
+cd web
+npm install
+```
+
+Create `web/.env` with:
+
+```
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+GOOGLE_REFRESH_TOKEN=your-refresh-token
+GOOGLE_CALENDAR_ID=your-calendar-id
+ANTHROPIC_API_KEY=your-anthropic-key
+```
+
+Then start the dev server:
+
+```bash
+npm run dev
+```
+
+The app runs at `http://localhost:5173`. Note: Netlify Functions (calendar, recipe scraping, AI assistant) only work on the deployed site or via `netlify dev`.
+
+### Deployment
+
+The `web/` directory is connected to Netlify via the GitHub repo `mattoremland/household-manager`. Pushing to `main` triggers an auto-deploy. Environment variables are configured in the Netlify dashboard.
+
+## Project structure
+
+```
+web/
+  src/
+    App.jsx              — Router + layout shell
+    lib/
+      supabase.js        — Supabase client init
+      db.js              — All CRUD functions
+      calendar.js        — Calendar API fetch wrappers
+    styles/
+      theme.css          — CSS variables + shared utility classes
+    components/          — Nav, PageHeader, ChatSidebar, etc.
+    pages/               — Route-level page components
+  netlify/
+    functions/
+      calendar.js        — Google Calendar API proxy
+      recipe.js          — Recipe URL scraper
+      assistant.js       — AI assistant (Claude agentic loop)
+  netlify.toml           — Build config + SPA redirect
+```
+
+## History
+
+This app was originally built with Streamlit (Python) and hosted on Streamlit Community Cloud. It was migrated to React + Netlify for full control over branding, PWA support, and mobile UX. The original Streamlit source is preserved in `streamlit-archive/`.

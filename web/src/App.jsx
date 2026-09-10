@@ -1,13 +1,15 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
-import Calendar from './pages/Calendar'
-import Lists from './pages/Lists'
-import HouseholdInfo from './pages/HouseholdInfo'
-import GroceryMeals from './pages/GroceryMeals'
-import Notes from './pages/Notes'
 import ChatSidebar from './components/ChatSidebar'
 import './styles/theme.css'
 import './App.css'
+
+const Calendar = lazy(() => import('./pages/Calendar'))
+const Lists = lazy(() => import('./pages/Lists'))
+const HouseholdInfo = lazy(() => import('./pages/HouseholdInfo'))
+const GroceryMeals = lazy(() => import('./pages/GroceryMeals'))
+const Notes = lazy(() => import('./pages/Notes'))
 
 const NAV_LINKS = [
   { to: '/', label: 'Dashboard' },
@@ -30,20 +32,26 @@ function Nav() {
   )
 }
 
+function PageLoader() {
+  return <p className="muted-text" style={{ padding: '1rem' }}>Loading...</p>
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <div className="app-shell">
         <Nav />
         <main className="app-content">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/lists" element={<Lists />} />
-            <Route path="/info" element={<HouseholdInfo />} />
-            <Route path="/grocery" element={<GroceryMeals />} />
-            <Route path="/notes" element={<Notes />} />
-          </Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/calendar" element={<Calendar />} />
+              <Route path="/lists" element={<Lists />} />
+              <Route path="/info" element={<HouseholdInfo />} />
+              <Route path="/grocery" element={<GroceryMeals />} />
+              <Route path="/notes" element={<Notes />} />
+            </Routes>
+          </Suspense>
         </main>
         <ChatSidebar />
       </div>

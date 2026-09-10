@@ -195,15 +195,6 @@
   margin-bottom: 1rem;
 }
 
-.meal-form .form-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text-muted);
-}
-
 .meal-form textarea {
   min-height: 5rem;
   resize: vertical;
@@ -220,24 +211,8 @@
   min-width: 0;
 }
 
-.form-error {
-  color: var(--danger);
-  font-size: 0.85rem;
-}
-
-.form-actions {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
-}
-
 .past-toggle {
   margin-bottom: 0.75rem;
-}
-
-.muted-text {
-  color: var(--text-muted);
-  font-size: 0.9rem;
 }
 
 @media (max-width: 480px) {
