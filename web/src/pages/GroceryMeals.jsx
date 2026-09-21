@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import PageHeader from '../components/PageHeader'
 import KebabMenu from '../components/KebabMenu'
 import ConfirmDialog from '../components/ConfirmDialog'
 import Linkify from '../components/Linkify'
 import {
   listGroceryItems, addGroceryItem, checkGroceryItem, deleteGroceryItem,
-  clearCheckedGroceryItems, addIngredientsToGroceryList,
+  clearCheckedGroceryItems, addIngredientsToGroceryList, updateGroceryItem,
+  saveCategoryMapping, SECTION_ORDER, SECTION_LABELS,
   listMealPlan, addMealPlanEntry, updateMealPlanEntry, deleteMealPlanEntry
 } from '../lib/db'
 import './GroceryMeals.css'
@@ -75,10 +79,64 @@ export default function GroceryMeals() {
 
 // ─── Grocery Section ────────────────────────────────────────
 
+function buildSectionedItems(items) {
+  const sections = new Map()
+  for (const cat of SECTION_ORDER) sections.set(cat, [])
+  for (const item of items) {
+    const cat = item.category || 'other'
+    if (!sections.has(cat)) sections.set(cat, [])
+    const list = sections.get(cat)
+    list.push(item)
+  }
+  for (const [, list] of sections) {
+    list.sort((a, b) => {
+      if (a.is_checked !== b.is_checked) return a.is_checked ? 1 : -1
+      return (a.sort_order || 0) - (b.sort_order || 0)
+    })
+  }
+  return sections
+}
+
+function flatOrderFromSections(sections) {
+  const ids = []
+  for (const [, items] of sections) {
+    for (const item of items) ids.push(item.id)
+  }
+  return ids
+}
+
 function GrocerySection({ items, onChanged }) {
   const unchecked = items.filter(i => !i.is_checked)
   const checked = items.filter(i => i.is_checked)
-  const sorted = [...unchecked, ...checked]
+  const sections = buildSectionedItems(items)
+  const allIds = flatOrderFromSections(sections)
+
+  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+  const sensors = useSensors(pointerSensor, touchSensor)
+
+  async function handleDragEnd(event) {
+    const { active, over } = event
+    if (!active || !over || active.id === over.id) return
+
+    const draggedItem = items.find(i => String(i.id) === String(active.id))
+    const overItem = items.find(i => String(i.id) === String(over.id))
+    if (!draggedItem || !overItem) return
+
+    const newCategory = overItem.category || 'other'
+    const categoryChanged = draggedItem.category !== newCategory
+
+    const updates = { sort_order: overItem.sort_order }
+    if (categoryChanged) updates.category = newCategory
+
+    await updateGroceryItem(draggedItem.id, updates)
+    if (categoryChanged) {
+      await saveCategoryMapping(draggedItem.name, newCategory)
+    }
+    onChanged()
+  }
+
+  const nonEmptySections = [...sections.entries()].filter(([, sectionItems]) => sectionItems.length > 0)
 
   return (
     <div className="grocery-section">
@@ -89,13 +147,22 @@ function GrocerySection({ items, onChanged }) {
 
       <GroceryAddForm onAdded={onChanged} />
 
-      {sorted.length === 0 && (
+      {items.length === 0 && (
         <p className="muted-text">Grocery list is empty — add something above.</p>
       )}
 
-      {sorted.map(item => (
-        <GroceryItemRow key={item.id} item={item} onChanged={onChanged} />
-      ))}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={allIds.map(String)} strategy={verticalListSortingStrategy}>
+          {nonEmptySections.map(([category, sectionItems]) => (
+            <div key={category} className="grocery-category-section">
+              <div className="grocery-category-header">{SECTION_LABELS[category] || category}</div>
+              {sectionItems.map(item => (
+                <SortableGroceryItem key={item.id} item={item} onChanged={onChanged} />
+              ))}
+            </div>
+          ))}
+        </SortableContext>
+      </DndContext>
 
       {checked.length > 0 && (
         <ClearCheckedButton count={checked.length} onCleared={onChanged} />
@@ -152,7 +219,14 @@ function GroceryAddForm({ onAdded }) {
   )
 }
 
-function GroceryItemRow({ item, onChanged }) {
+function SortableGroceryItem({ item, onChanged }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: String(item.id) })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : undefined,
+  }
+
   async function handleCheck() {
     await checkGroceryItem(item.id, !item.is_checked)
     onChanged()
@@ -168,7 +242,10 @@ function GroceryItemRow({ item, onChanged }) {
     : item.name
 
   return (
-    <div className={`grocery-item${item.is_checked ? ' checked' : ''}`}>
+    <div ref={setNodeRef} style={style} className={`grocery-item${item.is_checked ? ' checked' : ''}`}>
+      <button className="drag-handle" {...attributes} {...listeners} aria-label="Drag to reorder">
+        <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="9" cy="6" r="1.5" /><circle cx="15" cy="6" r="1.5" /><circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" /><circle cx="9" cy="18" r="1.5" /><circle cx="15" cy="18" r="1.5" /></svg>
+      </button>
       <label className="grocery-check">
         <input type="checkbox" checked={item.is_checked} onChange={handleCheck} />
         <span className="grocery-check-label">{label}</span>

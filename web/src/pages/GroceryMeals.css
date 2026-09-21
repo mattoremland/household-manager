@@ -28,18 +28,57 @@
   flex-shrink: 0;
 }
 
+/* --- Category sections --- */
+
+.grocery-category-section {
+  margin-bottom: 0.75rem;
+}
+
+.grocery-category-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-teal);
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.4rem;
+}
+
+/* --- Drag handle --- */
+
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: grab;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  touch-action: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-handle svg {
+  fill: currentColor;
+}
+
 /* --- Grocery item row --- */
 
 .grocery-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 8px;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
 }
 
 .grocery-check {

@@ -1,4 +1,6 @@
 import { supabase } from './supabase'
+import { categorizeItem, saveCategoryMapping, SECTION_ORDER, SECTION_LABELS } from './groceryCategories'
+export { saveCategoryMapping, SECTION_ORDER, SECTION_LABELS }
 
 // --- Household Info ---
 
@@ -172,15 +174,26 @@ export async function listGroceryItems() {
   const { data, error } = await supabase
     .from('grocery_items')
     .select('*')
+    .order('sort_order')
     .order('id')
   if (error) throw error
   return data
 }
 
 export async function addGroceryItem(name, quantity = null) {
+  const category = await categorizeItem(name)
+  const { data: maxRow } = await supabase
+    .from('grocery_items')
+    .select('sort_order')
+    .eq('category', category)
+    .eq('is_checked', false)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const sort_order = (maxRow?.sort_order ?? 0) + 1
   const { data, error } = await supabase
     .from('grocery_items')
-    .insert({ name, quantity, is_checked: false })
+    .insert({ name, quantity, is_checked: false, category, sort_order })
     .select()
     .single()
   if (error) throw error
@@ -191,6 +204,17 @@ export async function checkGroceryItem(id, isChecked) {
   const { data, error } = await supabase
     .from('grocery_items')
     .update({ is_checked: isChecked })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateGroceryItem(id, fields) {
+  const { data, error } = await supabase
+    .from('grocery_items')
+    .update(fields)
     .eq('id', id)
     .select()
     .single()
@@ -218,7 +242,12 @@ export async function addIngredientsToGroceryList(ingredients) {
   )
   const toAdd = ingredients.filter(i => !uncheckedNames.has(i.toLowerCase()))
   if (toAdd.length === 0) return 0
-  const rows = toAdd.map(name => ({ name, is_checked: false }))
+  const rows = await Promise.all(
+    toAdd.map(async name => {
+      const category = await categorizeItem(name)
+      return { name, is_checked: false, category }
+    })
+  )
   const { error } = await supabase.from('grocery_items').insert(rows)
   if (error) throw error
   return toAdd.length
