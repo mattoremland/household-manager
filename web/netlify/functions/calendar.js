@@ -122,13 +122,13 @@ export default async (req) => {
       const body = await req.json()
       const { summary, start, end, allDay, location, description, attendees } = body
 
-      const startField = allDay ? { date: start } : { dateTime: start }
-      const endField = allDay ? { date: end } : { dateTime: end }
-
-      if (!allDay && calendarTz) {
-        startField.timeZone = calendarTz
-        endField.timeZone = calendarTz
+      if (!allDay && !calendarTz) {
+        const tzRes = await cal.calendars.get({ calendarId })
+        calendarTz = tzRes.data.timeZone || 'America/New_York'
       }
+
+      const startField = allDay ? { date: start } : { dateTime: start, timeZone: calendarTz }
+      const endField = allDay ? { date: end } : { dateTime: end, timeZone: calendarTz }
 
       const eventBody = { summary, start: startField, end: endField }
       if (location) eventBody.location = location
@@ -156,12 +156,12 @@ export default async (req) => {
       }
 
       if (start !== undefined && end !== undefined && allDay !== undefined) {
-        const startField = allDay ? { date: start } : { dateTime: start }
-        const endField = allDay ? { date: end } : { dateTime: end }
-        if (!allDay && calendarTz) {
-          startField.timeZone = calendarTz
-          endField.timeZone = calendarTz
+        if (!allDay && !calendarTz) {
+          const tzRes = await cal.calendars.get({ calendarId })
+          calendarTz = tzRes.data.timeZone || 'America/New_York'
         }
+        const startField = allDay ? { date: start } : { dateTime: start, timeZone: calendarTz }
+        const endField = allDay ? { date: end } : { dateTime: end, timeZone: calendarTz }
         patch.start = startField
         patch.end = endField
       }

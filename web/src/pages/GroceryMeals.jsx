@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import PageHeader from '../components/PageHeader'
@@ -106,6 +106,7 @@ function flatOrderFromSections(sections) {
 }
 
 function GrocerySection({ items, onChanged }) {
+  const [dragging, setDragging] = useState(false)
   const unchecked = items.filter(i => !i.is_checked)
   const checked = items.filter(i => i.is_checked)
   const sections = buildSectionedItems(items)
@@ -115,18 +116,25 @@ function GrocerySection({ items, onChanged }) {
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   const sensors = useSensors(pointerSensor, touchSensor)
 
+  function handleDragStart() { setDragging(true) }
+  function handleDragCancel() { setDragging(false) }
+
   async function handleDragEnd(event) {
+    setDragging(false)
     const { active, over } = event
     if (!active || !over || active.id === over.id) return
 
     const draggedItem = items.find(i => String(i.id) === String(active.id))
+    if (!draggedItem) return
+
     const overItem = items.find(i => String(i.id) === String(over.id))
-    if (!draggedItem || !overItem) return
+    const newCategory = overItem
+      ? (overItem.category || 'other')
+      : SECTION_ORDER.includes(over.id) ? over.id : null
+    if (!newCategory) return
 
-    const newCategory = overItem.category || 'other'
     const categoryChanged = draggedItem.category !== newCategory
-
-    const updates = { sort_order: overItem.sort_order }
+    const updates = { sort_order: overItem ? overItem.sort_order : 0 }
     if (categoryChanged) updates.category = newCategory
 
     await updateGroceryItem(draggedItem.id, updates)
@@ -135,8 +143,6 @@ function GrocerySection({ items, onChanged }) {
     }
     onChanged()
   }
-
-  const nonEmptySections = [...sections.entries()].filter(([, sectionItems]) => sectionItems.length > 0)
 
   return (
     <div className="grocery-section">
@@ -151,16 +157,20 @@ function GrocerySection({ items, onChanged }) {
         <p className="muted-text">Grocery list is empty — add something above.</p>
       )}
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
         <SortableContext items={allIds.map(String)} strategy={verticalListSortingStrategy}>
-          {nonEmptySections.map(([category, sectionItems]) => (
-            <div key={category} className="grocery-category-section">
-              <div className="grocery-category-header">{SECTION_LABELS[category] || category}</div>
-              {sectionItems.map(item => (
-                <SortableGroceryItem key={item.id} item={item} onChanged={onChanged} />
-              ))}
-            </div>
-          ))}
+          {[...sections.entries()].map(([category, sectionItems]) => {
+            if (sectionItems.length === 0 && !dragging) return null
+            return (
+              <div key={category} className="grocery-category-section">
+                <div className="grocery-category-header">{SECTION_LABELS[category] || category}</div>
+                {sectionItems.map(item => (
+                  <SortableGroceryItem key={item.id} item={item} onChanged={onChanged} />
+                ))}
+                {sectionItems.length === 0 && <EmptySectionDrop category={category} />}
+              </div>
+            )
+          })}
         </SortableContext>
       </DndContext>
 
@@ -172,6 +182,16 @@ function GrocerySection({ items, onChanged }) {
         <CopyListToggle items={unchecked} />
       )}
     </div>
+  )
+}
+
+function EmptySectionDrop({ category }) {
+  const { setNodeRef, isOver } = useDroppable({ id: category })
+  return (
+    <div
+      ref={setNodeRef}
+      className={`empty-section-drop${isOver ? ' drag-over' : ''}`}
+    />
   )
 }
 

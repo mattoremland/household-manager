@@ -45,6 +45,19 @@
   margin-bottom: 0.4rem;
 }
 
+.empty-section-drop {
+  height: 4px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.empty-section-drop.drag-over {
+  height: 2.5rem;
+  background: rgba(46, 139, 144, 0.15);
+  border: 1px dashed var(--accent-teal);
+  border-radius: 8px;
+}
+
 /* --- Drag handle --- */
 
 .drag-handle {
