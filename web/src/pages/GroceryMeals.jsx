@@ -9,7 +9,7 @@ import Linkify from '../components/Linkify'
 import {
   listGroceryItems, addGroceryItem, checkGroceryItem, deleteGroceryItem,
   clearCheckedGroceryItems, addIngredientsToGroceryList, updateGroceryItem,
-  saveCategoryMapping, SECTION_ORDER, SECTION_LABELS,
+  saveCategoryMapping, SECTION_ORDER, SECTION_LABELS, STORE_ONLY_SECTIONS,
   listMealPlan, addMealPlanEntry, updateMealPlanEntry, deleteMealPlanEntry
 } from '../lib/db'
 import './GroceryMeals.css'
@@ -138,7 +138,7 @@ function GrocerySection({ items, onChanged }) {
     if (categoryChanged) updates.category = newCategory
 
     await updateGroceryItem(draggedItem.id, updates)
-    if (categoryChanged) {
+    if (categoryChanged && !STORE_ONLY_SECTIONS.has(newCategory)) {
       await saveCategoryMapping(draggedItem.name, newCategory)
     }
     onChanged()

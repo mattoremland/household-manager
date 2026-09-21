@@ -13,8 +13,11 @@ export const SECTION_ORDER = [
   'bread',
   'frozen',
   'dairy',
+  'bjs',
   'other',
 ]
+
+export const STORE_ONLY_SECTIONS = new Set(['bjs'])
 
 export const SECTION_LABELS = {
   'produce': 'Produce',
@@ -29,6 +32,7 @@ export const SECTION_LABELS = {
   'bread': 'Bread',
   'frozen': 'Frozen',
   'dairy': 'Dairy',
+  'bjs': "BJ's",
   'other': 'Other',
 }
 

@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
-import { categorizeItem, saveCategoryMapping, SECTION_ORDER, SECTION_LABELS } from './groceryCategories'
-export { saveCategoryMapping, SECTION_ORDER, SECTION_LABELS }
+import { categorizeItem, saveCategoryMapping, SECTION_ORDER, SECTION_LABELS, STORE_ONLY_SECTIONS } from './groceryCategories'
+export { saveCategoryMapping, SECTION_ORDER, SECTION_LABELS, STORE_ONLY_SECTIONS }
 
 // --- Household Info ---
 
