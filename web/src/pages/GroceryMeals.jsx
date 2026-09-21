@@ -12,6 +12,7 @@ import {
   saveCategoryMapping, SECTION_ORDER, SECTION_LABELS, STORE_ONLY_SECTIONS,
   listMealPlan, addMealPlanEntry, updateMealPlanEntry, deleteMealPlanEntry
 } from '../lib/db'
+import { searchMealieRecipes, getMealieRecipe } from '../lib/mealie'
 import './GroceryMeals.css'
 
 const CART_ICON = <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></svg>
@@ -362,9 +363,17 @@ function MealPlanSection({ entries, onChanged, onGroceryChanged }) {
   const [showPast, setShowPast] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [deletingEntry, setDeletingEntry] = useState(null)
+  const [showMealie, setShowMealie] = useState(false)
+  const [mealiePrefill, setMealiePrefill] = useState(null)
 
   const todayIso = new Date().toISOString().slice(0, 10)
   const visible = showPast ? entries : entries.filter(e => e.date >= todayIso)
+
+  function handleMealieSelect(recipe) {
+    setMealiePrefill(recipe)
+    setShowMealie(false)
+    setShowForm(true)
+  }
 
   return (
     <div className="meals-section">
@@ -373,19 +382,35 @@ function MealPlanSection({ entries, onChanged, onGroceryChanged }) {
         <h3 className="section-heading">Meal plan</h3>
       </div>
 
-      <div className="meal-form-toggle">
+      <div className="meal-form-toggle" style={{ display: 'flex', gap: '0.5rem' }}>
         <button
-          className="btn btn-secondary btn-full"
-          onClick={() => setShowForm(v => !v)}
+          className="btn btn-secondary"
+          style={{ flex: 1 }}
+          onClick={() => { setShowForm(v => !v); setMealiePrefill(null) }}
         >
           {showForm ? 'Cancel' : 'Add a planned meal'}
         </button>
+        <button
+          className="btn btn-secondary"
+          style={{ flex: 1 }}
+          onClick={() => setShowMealie(true)}
+        >
+          Import from Mealie
+        </button>
       </div>
+
+      {showMealie && (
+        <MealieImportModal
+          onSelect={handleMealieSelect}
+          onClose={() => setShowMealie(false)}
+        />
+      )}
 
       {showForm && (
         <AddMealForm
-          onAdded={() => { setShowForm(false); onChanged() }}
-          onCancel={() => setShowForm(false)}
+          onAdded={() => { setShowForm(false); setMealiePrefill(null); onChanged() }}
+          onCancel={() => { setShowForm(false); setMealiePrefill(null) }}
+          prefill={mealiePrefill}
         />
       )}
 
@@ -439,13 +464,13 @@ function MealPlanSection({ entries, onChanged, onGroceryChanged }) {
   )
 }
 
-function AddMealForm({ onAdded, onCancel }) {
+function AddMealForm({ onAdded, onCancel, prefill }) {
   const todayIso = new Date().toISOString().slice(0, 10)
   const [date, setDate] = useState(todayIso)
-  const [name, setName] = useState('')
-  const [notes, setNotes] = useState('')
-  const [ingredients, setIngredients] = useState('')
-  const [sourceUrl, setSourceUrl] = useState('')
+  const [name, setName] = useState(prefill?.name || '')
+  const [notes, setNotes] = useState(prefill?.description || '')
+  const [ingredients, setIngredients] = useState(prefill?.ingredients?.join('\n') || '')
+  const [sourceUrl, setSourceUrl] = useState(prefill?.sourceUrl || '')
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
   const [fetching, setFetching] = useState(false)
@@ -693,6 +718,100 @@ function MealCard({ entry, onEdit, onDelete, onGroceryChanged }) {
       )}
 
       {addingMsg && <p className="copy-result" style={{ marginTop: '0.35rem' }}>{addingMsg}</p>}
+    </div>
+  )
+}
+
+
+// ─── Mealie Import Modal ──────────────────────────────────────
+
+function MealieImportModal({ onSelect, onClose }) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [loadingSlug, setLoadingSlug] = useState(null)
+  const [error, setError] = useState(null)
+  const inputRef = useRef(null)
+
+  useEffect(() => { inputRef.current?.focus() }, [])
+
+  useEffect(() => {
+    handleSearch('')
+  }, [])
+
+  async function handleSearch(q) {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await searchMealieRecipes(q)
+      setResults(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    handleSearch(query)
+  }
+
+  async function handlePick(slug) {
+    setLoadingSlug(slug)
+    try {
+      const recipe = await getMealieRecipe(slug)
+      onSelect(recipe)
+    } catch (err) {
+      setError(err.message)
+      setLoadingSlug(null)
+    }
+  }
+
+  const items = results?.items || []
+
+  return (
+    <div className="mealie-overlay" onClick={onClose}>
+      <div className="mealie-modal card" onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Import from Mealie</h3>
+          <button className="btn-ghost" onClick={onClose} style={{ fontSize: '1.2rem', padding: '0.25rem' }}>&times;</button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Search recipes..."
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            style={{ flex: 1 }}
+          />
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? 'Searching...' : 'Search'}
+          </button>
+        </form>
+
+        {error && <p className="form-error">{error}</p>}
+
+        <div className="mealie-results">
+          {results && items.length === 0 && !loading && (
+            <p className="muted-text">No recipes found.</p>
+          )}
+          {items.map(r => (
+            <button
+              key={r.slug}
+              className="mealie-recipe-row"
+              onClick={() => handlePick(r.slug)}
+              disabled={loadingSlug === r.slug}
+            >
+              <span className="mealie-recipe-name">{r.name}</span>
+              {r.description && <span className="mealie-recipe-desc">{r.description}</span>}
+              {loadingSlug === r.slug && <span className="mealie-loading-dot">Loading...</span>}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

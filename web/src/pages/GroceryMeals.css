@@ -290,6 +290,80 @@
   margin-bottom: 0.75rem;
 }
 
+/* --- Mealie import modal --- */
+
+.mealie-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+  overflow-y: auto;
+}
+
+.mealie-modal {
+  width: 100%;
+  max-width: 500px;
+  max-height: calc(100vh - 4rem);
+  display: flex;
+  flex-direction: column;
+}
+
+.mealie-results {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.mealie-recipe-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  width: 100%;
+  text-align: left;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.4rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.mealie-recipe-row:hover,
+.mealie-recipe-row:focus {
+  border-color: var(--accent-teal);
+}
+
+.mealie-recipe-row:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.mealie-recipe-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.mealie-recipe-desc {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mealie-loading-dot {
+  font-size: 0.8rem;
+  color: var(--accent-teal);
+}
+
 @media (max-width: 480px) {
   .grocery-add-form {
     flex-wrap: wrap;
