@@ -76,6 +76,27 @@ export default function ChatSidebar() {
     if (isOpen) inputRef.current?.focus()
   }, [isOpen])
 
+  // The open panel gets its own history entry so the iPhone back-swipe closes it
+  // instead of navigating the page underneath. The router's state is kept intact.
+  useEffect(() => {
+    if (window.history.state?.chatOpen) {
+      window.history.replaceState({ ...window.history.state, chatOpen: false }, '')
+    }
+    const onPopState = () => setIsOpen(!!window.history.state?.chatOpen)
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+
+  function openPanel() {
+    window.history.pushState({ ...window.history.state, chatOpen: true }, '')
+    setIsOpen(true)
+  }
+
+  function closePanel() {
+    if (window.history.state?.chatOpen) window.history.back()
+    else setIsOpen(false)
+  }
+
   function handleClear() {
     setDisplay([])
     setMessages([])
@@ -142,7 +163,7 @@ export default function ChatSidebar() {
     <>
       <button
         className={`chat-fab ${display.length > 0 ? 'has-response' : ''}`}
-        onClick={() => setIsOpen(true)}
+        onClick={openPanel}
         aria-label="Open assistant"
         style={{ display: isOpen ? 'none' : undefined }}
       >
@@ -151,7 +172,7 @@ export default function ChatSidebar() {
 
       <div
         className={`chat-backdrop ${isOpen ? 'open' : ''}`}
-        onClick={() => setIsOpen(false)}
+        onClick={closePanel}
       />
 
       <div className={`chat-panel ${isOpen ? 'open' : ''}`}>
@@ -165,7 +186,7 @@ export default function ChatSidebar() {
             >
               🗑
             </button>
-            <button onClick={() => setIsOpen(false)} title="Close">
+            <button onClick={closePanel} title="Close">
               ✕
             </button>
           </div>
