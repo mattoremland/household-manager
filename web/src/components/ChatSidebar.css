@@ -73,6 +73,11 @@
   transform: translateX(0);
 }
 
+.chat-panel.no-anim,
+.chat-backdrop.no-anim {
+  transition: none;
+}
+
 /* --- Header --- */
 
 .chat-header {

@@ -78,23 +78,38 @@ export default function ChatSidebar() {
 
   // The open panel gets its own history entry so the iPhone back-swipe closes it
   // instead of navigating the page underneath. The router's state is kept intact.
+  // iOS animates the swipe itself, so a swipe-close skips our slide-out animation.
+  const closingFromUiRef = useRef(false)
+  const [skipAnimation, setSkipAnimation] = useState(false)
+
   useEffect(() => {
     if (window.history.state?.chatOpen) {
       window.history.replaceState({ ...window.history.state, chatOpen: false }, '')
     }
-    const onPopState = () => setIsOpen(!!window.history.state?.chatOpen)
+    const onPopState = () => {
+      const open = !!window.history.state?.chatOpen
+      setSkipAnimation(!open && !closingFromUiRef.current)
+      closingFromUiRef.current = false
+      setIsOpen(open)
+    }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
   function openPanel() {
     window.history.pushState({ ...window.history.state, chatOpen: true }, '')
+    setSkipAnimation(false)
     setIsOpen(true)
   }
 
   function closePanel() {
-    if (window.history.state?.chatOpen) window.history.back()
-    else setIsOpen(false)
+    setSkipAnimation(false)
+    if (window.history.state?.chatOpen) {
+      closingFromUiRef.current = true
+      window.history.back()
+    } else {
+      setIsOpen(false)
+    }
   }
 
   function handleClear() {
@@ -171,11 +186,11 @@ export default function ChatSidebar() {
       </button>
 
       <div
-        className={`chat-backdrop ${isOpen ? 'open' : ''}`}
+        className={`chat-backdrop ${isOpen ? 'open' : ''} ${skipAnimation ? 'no-anim' : ''}`}
         onClick={closePanel}
       />
 
-      <div className={`chat-panel ${isOpen ? 'open' : ''}`}>
+      <div className={`chat-panel ${isOpen ? 'open' : ''} ${skipAnimation ? 'no-anim' : ''}`}>
         <div className="chat-header">
           <h2>Assistant</h2>
           <div className="chat-header-actions">
