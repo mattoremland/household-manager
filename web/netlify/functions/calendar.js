@@ -1,4 +1,5 @@
 import { google } from 'googleapis'
+import { requirePasscode } from '../lib/passcode.js'
 
 let cachedAuth = null
 let calendarTz = null
@@ -76,6 +77,9 @@ function normalizeEvent(raw) {
 }
 
 export default async (req) => {
+  const denied = await requirePasscode(req)
+  if (denied) return denied
+
   try {
     const url = new URL(req.url)
     const method = req.method

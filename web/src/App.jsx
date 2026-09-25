@@ -1,7 +1,9 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
 import ChatSidebar from './components/ChatSidebar'
+import PasscodeGate from './components/PasscodeGate'
+import { getPasscode, PASSCODE_REQUIRED_EVENT } from './lib/passcode'
 import './styles/theme.css'
 import './App.css'
 
@@ -37,6 +39,16 @@ function PageLoader() {
 }
 
 export default function App() {
+  const [unlocked, setUnlocked] = useState(() => !!getPasscode())
+
+  useEffect(() => {
+    const lock = () => setUnlocked(false)
+    window.addEventListener(PASSCODE_REQUIRED_EVENT, lock)
+    return () => window.removeEventListener(PASSCODE_REQUIRED_EVENT, lock)
+  }, [])
+
+  if (!unlocked) return <PasscodeGate onUnlocked={() => setUnlocked(true)} />
+
   return (
     <BrowserRouter>
       <div className="app-shell">

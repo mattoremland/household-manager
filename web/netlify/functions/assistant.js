@@ -1,6 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
+import { categorizeWith, nextSortOrder } from '../../src/lib/groceryKeywords.js'
+import { requirePasscode, PASSCODE_HEADER } from '../lib/passcode.js'
 
+const DEFAULT_TIME_ZONE = 'America/New_York'
 const MODEL = 'claude-sonnet-5'
 const MAX_TOKENS = 8000
 const MAX_TOOL_ROUNDS = 12
@@ -35,7 +38,10 @@ async function callCalendar(method, action, params = {}, body = null) {
     url.searchParams.set(k, String(v))
   }
 
-  const opts = { method, headers: { 'Content-Type': 'application/json' } }
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json', [PASSCODE_HEADER]: process.env.APP_PASSCODE || '' },
+  }
   if (body) opts.body = JSON.stringify(body)
 
   const resp = await fetch(url, opts)
@@ -47,6 +53,12 @@ async function callCalendar(method, action, params = {}, body = null) {
 // ---------------------------------------------------------------------------
 // Supabase helpers
 // ---------------------------------------------------------------------------
+
+// Double-quote the value so commas/parentheses in search text don't break PostgREST's .or() syntax.
+function ilikeAny(columns, text) {
+  const quoted = `"%${text.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}%"`
+  return columns.map(col => `${col}.ilike.${quoted}`).join(',')
+}
 
 async function findList(supabase, listName) {
   const { data, error } = await supabase
@@ -382,11 +394,10 @@ async function executeTool(name, input, supabase) {
 
     // ---- Household info ----
     case 'search_household_info': {
-      const q = `%${input.text}%`
       const { data, error } = await supabase
         .from('household_info')
         .select('*')
-        .or(`title.ilike.${q},content.ilike.${q}`)
+        .or(ilikeAny(['title', 'content'], input.text || ''))
         .order('category')
         .order('title')
       if (error) throw error
@@ -418,9 +429,11 @@ async function executeTool(name, input, supabase) {
     }
 
     case 'add_grocery_item': {
+      const category = await categorizeWith(supabase, input.name)
+      const sort_order = await nextSortOrder(supabase, category)
       const { data, error } = await supabase
         .from('grocery_items')
-        .insert({ name: input.name, quantity: input.quantity || null, is_checked: false })
+        .insert({ name: input.name, quantity: input.quantity || null, is_checked: false, category, sort_order })
         .select()
         .single()
       if (error) throw error
@@ -464,11 +477,10 @@ async function executeTool(name, input, supabase) {
         if (error) throw error
         return data
       }
-      const q = `%${text}%`
       const { data, error } = await supabase
         .from('notes')
         .select('*')
-        .or(`title.ilike.${q},body.ilike.${q}`)
+        .or(ilikeAny(['title', 'body'], text))
         .order('updated_at', { ascending: false })
       if (error) throw error
       return data
@@ -500,16 +512,29 @@ async function executeTool(name, input, supabase) {
 // System prompt
 // ---------------------------------------------------------------------------
 
-function systemPrompt() {
-  const today = new Date()
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
+function resolveTimeZone(tz) {
+  try {
+    if (tz) {
+      new Intl.DateTimeFormat('en-US', { timeZone: tz })
+      return tz
+    }
+  } catch {}
+  return DEFAULT_TIME_ZONE
+}
 
-  const dayName = today.toLocaleDateString('en-US', { weekday: 'long' })
-  const monthName = today.toLocaleDateString('en-US', { month: 'long' })
-  const dateStr = `${dayName}, ${monthName} ${today.getDate()}, ${today.getFullYear()}`
-  const isoToday = today.toISOString().slice(0, 10)
+// The function runs in UTC; "today" must be the household's local date or evening
+// requests about "tomorrow" land a day late.
+function systemPrompt(timeZone) {
+  const isoToday = new Intl.DateTimeFormat('en-CA', {
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date())
+  const noonToday = new Date(`${isoToday}T12:00:00Z`)
+  const tomorrow = new Date(noonToday)
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1)
   const isoTomorrow = tomorrow.toISOString().slice(0, 10)
+  const dateStr = noonToday.toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC',
+  })
 
   const instacartEnabled = !!process.env.INSTACART_API_KEY
 
@@ -552,6 +577,9 @@ How to behave:
 // ---------------------------------------------------------------------------
 
 export default async (req) => {
+  const denied = await requirePasscode(req)
+  if (denied) return denied
+
   if (req.method !== 'POST') {
     return json(405, { error: 'Method not allowed' })
   }
@@ -572,6 +600,7 @@ export default async (req) => {
   if (!Array.isArray(messages) || messages.length === 0) {
     return json(400, { error: 'messages array is required' })
   }
+  const timeZone = resolveTimeZone(body.timeZone)
 
   const client = new Anthropic({ apiKey })
   const supabase = getSupabase()
@@ -602,7 +631,7 @@ export default async (req) => {
     const apiParams = {
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system: systemPrompt(),
+      system: systemPrompt(timeZone),
       tools: allTools,
       messages: allMessages,
     }

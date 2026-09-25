@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
+import { DndContext, DragOverlay, MeasuringStrategy, closestCenter, pointerWithin, PointerSensor, TouchSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import PageHeader from '../components/PageHeader'
@@ -13,6 +13,8 @@ import {
   listMealPlan, addMealPlanEntry, updateMealPlanEntry, deleteMealPlanEntry
 } from '../lib/db'
 import { searchMealieRecipes, getMealieRecipe } from '../lib/mealie'
+import { toLocalDateStr } from '../lib/utils'
+import { functionFetch } from '../lib/passcode'
 import './GroceryMeals.css'
 
 const CART_ICON = <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></svg>
@@ -98,9 +100,13 @@ function buildSectionedItems(items) {
   return sections
 }
 
+// Sections resize as the item moves between them, so rects must be re-measured continuously.
+const MEASURING = { droppable: { strategy: MeasuringStrategy.Always } }
+
 function GrocerySection({ items, onChanged }) {
   // Local copy during a drag so the dragged item can move between sections live.
   const [dragItems, setDragItems] = useState(null)
+  const [activeId, setActiveId] = useState(null)
   const dragging = dragItems !== null
   const displayItems = dragItems || items
   const unchecked = items.filter(i => !i.is_checked)
@@ -113,26 +119,39 @@ function GrocerySection({ items, onChanged }) {
 
   const findById = (list, id) => list.find(i => String(i.id) === String(id))
 
-  function handleDragStart() { setDragItems(items) }
-  function handleDragCancel() { setDragItems(null) }
+  const activeItem = activeId !== null ? findById(items, activeId) : null
+
+  function handleDragStart({ active }) { setDragItems(items); setActiveId(active.id) }
+  function handleDragCancel() { setDragItems(null); setActiveId(null) }
+
+  // Right after a section change the dragged item's measured rect is stale, which makes
+  // the item flip back and forth between sections. Hold still until layout has settled.
+  const moveLockRef = useRef(false)
+
+  const collisionDetection = useCallback(args => {
+    if (moveLockRef.current) return [{ id: args.active.id }]
+    const hits = pointerWithin(args)
+    return hits.length > 0 ? hits : closestCenter(args)
+  }, [])
 
   function handleDragOver({ active, over }) {
-    if (!over || active.id === over.id) return
-    setDragItems(prev => {
-      if (!prev) return prev
-      const activeItem = findById(prev, active.id)
-      const overItem = findById(prev, over.id)
-      const target = overItem
-        ? (overItem.category || 'other')
-        : SECTION_ORDER.includes(over.id) ? over.id : null
-      if (!activeItem || !target || (activeItem.category || 'other') === target) return prev
-      return prev.map(i => i.id === activeItem.id
-        ? { ...i, category: target, sort_order: overItem ? overItem.sort_order : 0 }
-        : i)
-    })
+    if (!over || !dragItems || moveLockRef.current || String(active.id) === String(over.id)) return
+    const moving = findById(dragItems, active.id)
+    const overItem = findById(dragItems, over.id)
+    const target = overItem
+      ? (overItem.category || 'other')
+      : SECTION_ORDER.includes(over.id) ? over.id : null
+    if (!moving || !target || (moving.category || 'other') === target) return
+
+    moveLockRef.current = true
+    setTimeout(() => { moveLockRef.current = false }, 50)
+    setDragItems(dragItems.map(i => i.id === moving.id
+      ? { ...i, category: target, sort_order: overItem ? overItem.sort_order : 0 }
+      : i))
   }
 
   async function handleDragEnd({ active, over }) {
+    setActiveId(null)
     const localItems = dragItems
     const original = findById(items, active.id)
     const moved = localItems && findById(localItems, active.id)
@@ -154,6 +173,8 @@ function GrocerySection({ items, onChanged }) {
         await saveCategoryMapping(original.name, newCategory)
       }
       await onChanged()
+    } catch (err) {
+      console.error('Failed to move grocery item:', err)
     } finally {
       setDragItems(null)
     }
@@ -172,7 +193,7 @@ function GrocerySection({ items, onChanged }) {
         <p className="muted-text">Grocery list is empty — add something above.</p>
       )}
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
+      <DndContext sensors={sensors} collisionDetection={collisionDetection} measuring={MEASURING} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
         {[...sections.entries()].map(([category, sectionItems]) => {
           if (sectionItems.length === 0 && !dragging) return null
           return (
@@ -187,6 +208,9 @@ function GrocerySection({ items, onChanged }) {
             </div>
           )
         })}
+        <DragOverlay>
+          {activeItem && <GroceryItemPreview item={activeItem} />}
+        </DragOverlay>
       </DndContext>
 
       {checked.length > 0 && (
@@ -272,24 +296,40 @@ function SortableGroceryItem({ item, onChanged }) {
     onChanged()
   }
 
-  const label = item.quantity
-    ? <>{item.name} <span className="qty">({item.quantity})</span></>
-    : item.name
-
   return (
     <div ref={setNodeRef} style={style} className={`grocery-item${item.is_checked ? ' checked' : ''}`}>
       <button className="drag-handle" {...attributes} {...listeners} aria-label="Drag to reorder">
-        <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="9" cy="6" r="1.5" /><circle cx="15" cy="6" r="1.5" /><circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" /><circle cx="9" cy="18" r="1.5" /><circle cx="15" cy="18" r="1.5" /></svg>
+        {GRIP_ICON}
       </button>
       <label className="grocery-check">
         <input type="checkbox" checked={item.is_checked} onChange={handleCheck} />
-        <span className="grocery-check-label">{label}</span>
+        <span className="grocery-check-label">{itemLabel(item)}</span>
       </label>
       <div className="grocery-delete">
         <button className="btn btn-ghost" onClick={handleDelete} aria-label="Delete">
           &#10005;
         </button>
       </div>
+    </div>
+  )
+}
+
+const GRIP_ICON = <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="9" cy="6" r="1.5" /><circle cx="15" cy="6" r="1.5" /><circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" /><circle cx="9" cy="18" r="1.5" /><circle cx="15" cy="18" r="1.5" /></svg>
+
+function itemLabel(item) {
+  return item.quantity
+    ? <>{item.name} <span className="qty">({item.quantity})</span></>
+    : item.name
+}
+
+function GroceryItemPreview({ item }) {
+  return (
+    <div className={`grocery-item grocery-item-overlay${item.is_checked ? ' checked' : ''}`}>
+      <span className="drag-handle">{GRIP_ICON}</span>
+      <span className="grocery-check">
+        <input type="checkbox" checked={item.is_checked} readOnly tabIndex={-1} />
+        <span className="grocery-check-label">{itemLabel(item)}</span>
+      </span>
     </div>
   )
 }
@@ -380,7 +420,7 @@ function MealPlanSection({ entries, onChanged, onGroceryChanged }) {
   const [showMealie, setShowMealie] = useState(false)
   const [mealiePrefill, setMealiePrefill] = useState(null)
 
-  const todayIso = new Date().toISOString().slice(0, 10)
+  const todayIso = toLocalDateStr()
   const visible = showPast ? entries : entries.filter(e => e.date >= todayIso)
 
   function handleMealieSelect(recipe) {
@@ -479,8 +519,7 @@ function MealPlanSection({ entries, onChanged, onGroceryChanged }) {
 }
 
 function AddMealForm({ onAdded, onCancel, prefill }) {
-  const todayIso = new Date().toISOString().slice(0, 10)
-  const [date, setDate] = useState(todayIso)
+  const [date, setDate] = useState(() => toLocalDateStr())
   const [name, setName] = useState(prefill?.name || '')
   const [notes, setNotes] = useState(prefill?.description || '')
   const [ingredients, setIngredients] = useState(prefill?.ingredients?.join('\n') || '')
@@ -495,7 +534,7 @@ function AddMealForm({ onAdded, onCancel, prefill }) {
     setFetching(true)
     setFetchError(null)
     try {
-      const resp = await fetch('/.netlify/functions/recipe', {
+      const resp = await functionFetch('/.netlify/functions/recipe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: sourceUrl.trim() }),

@@ -10,6 +10,13 @@ export function md5ColorHash(str, palette) {
   return palette[Math.abs(hash) % palette.length]
 }
 
+export function toLocalDateStr(d = new Date()) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 /**
  * Extract the first phone-number-shaped match from text, or null.
  */

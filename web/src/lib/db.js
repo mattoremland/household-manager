@@ -1,6 +1,14 @@
 import { supabase } from './supabase'
 import { categorizeItem, saveCategoryMapping, SECTION_ORDER, SECTION_LABELS, STORE_ONLY_SECTIONS } from './groceryCategories'
+import { nextSortOrder } from './groceryKeywords'
 export { saveCategoryMapping, SECTION_ORDER, SECTION_LABELS, STORE_ONLY_SECTIONS }
+
+// PostgREST .or() filter matching `text` in any column. The value is double-quoted so
+// commas, dots and parentheses in user input don't break the filter syntax.
+function ilikeAny(columns, text) {
+  const quoted = `"%${text.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}%"`
+  return columns.map(col => `${col}.ilike.${quoted}`).join(',')
+}
 
 // --- Household Info ---
 
@@ -17,11 +25,10 @@ export async function listHouseholdInfo(category = null) {
 }
 
 export async function searchHouseholdInfo(query) {
-  const q = `%${query}%`
   const { data, error } = await supabase
     .from('household_info')
     .select('*')
-    .or(`title.ilike.${q},content.ilike.${q}`)
+    .or(ilikeAny(['title', 'content'], query))
     .order('category')
     .order('title')
   if (error) throw error
@@ -182,15 +189,7 @@ export async function listGroceryItems() {
 
 export async function addGroceryItem(name, quantity = null) {
   const category = await categorizeItem(name)
-  const { data: maxRow } = await supabase
-    .from('grocery_items')
-    .select('sort_order')
-    .eq('category', category)
-    .eq('is_checked', false)
-    .order('sort_order', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  const sort_order = (maxRow?.sort_order ?? 0) + 1
+  const sort_order = await nextSortOrder(supabase, category)
   const { data, error } = await supabase
     .from('grocery_items')
     .insert({ name, quantity, is_checked: false, category, sort_order })
@@ -314,11 +313,10 @@ export async function listNotes({ orderBy = 'sort_order' } = {}) {
 }
 
 export async function searchNotes(query) {
-  const q = `%${query}%`
   const { data, error } = await supabase
     .from('notes')
     .select('*')
-    .or(`title.ilike.${q},body.ilike.${q}`)
+    .or(ilikeAny(['title', 'body'], query))
     .order('updated_at', { ascending: false })
   if (error) throw error
   return data

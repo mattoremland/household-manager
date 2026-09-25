@@ -1,3 +1,5 @@
+import { requirePasscode } from '../lib/passcode.js'
+
 function json(status, body) {
   return new Response(JSON.stringify(body), {
     status,
@@ -9,6 +11,9 @@ const MEALIE_URL = process.env.MEALIE_URL
 const MEALIE_TOKEN = process.env.MEALIE_API_TOKEN
 
 export default async (req) => {
+  const denied = await requirePasscode(req)
+  if (denied) return denied
+
   if (!MEALIE_URL || !MEALIE_TOKEN) {
     return json(500, { error: 'Mealie not configured' })
   }

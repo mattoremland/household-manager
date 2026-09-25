@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { functionFetch } from '../lib/passcode'
 import './ChatSidebar.css'
 
 const TOOL_LABELS = {
@@ -39,10 +40,19 @@ function saveStorage(key, value, limit) {
   } catch {}
 }
 
+// API history must start on a plain user message: cutting mid-turn would leave a
+// tool_result whose tool_use was dropped, and the API rejects that.
+function trimHistory(msgs, limit) {
+  for (let i = Math.max(0, msgs.length - limit); i < msgs.length; i++) {
+    if (msgs[i].role === 'user' && typeof msgs[i].content === 'string') return msgs.slice(i)
+  }
+  return []
+}
+
 export default function ChatSidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const [display, setDisplay] = useState(() => loadStorage('chatDisplay', []))
-  const [messages, setMessages] = useState(() => loadStorage('chatMessages', []))
+  const [messages, setMessages] = useState(() => trimHistory(loadStorage('chatMessages', []), MAX_STORED_MESSAGES))
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef(null)
@@ -53,7 +63,9 @@ export default function ChatSidebar() {
   }, [display])
 
   useEffect(() => {
-    saveStorage('chatMessages', messages, MAX_STORED_MESSAGES)
+    try {
+      localStorage.setItem('chatMessages', JSON.stringify(trimHistory(messages, MAX_STORED_MESSAGES)))
+    } catch {}
   }, [messages])
 
   useEffect(() => {
@@ -81,16 +93,19 @@ export default function ChatSidebar() {
     setInput('')
 
     const newDisplay = [...display, { role: 'user', kind: 'text', text }]
-    const newMessages = [...messages, { role: 'user', content: text }]
+    const newMessages = trimHistory([...messages, { role: 'user', content: text }], MAX_STORED_MESSAGES)
     setDisplay(newDisplay)
     setMessages(newMessages)
     setIsLoading(true)
 
     try {
-      const resp = await fetch('/.netlify/functions/assistant', {
+      const resp = await functionFetch('/.netlify/functions/assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({
+          messages: newMessages,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        }),
       })
 
       const contentType = resp.headers.get('content-type') || ''

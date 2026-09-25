@@ -7,17 +7,12 @@ import interactionPlugin from '@fullcalendar/interaction'
 import PageHeader from '../components/PageHeader'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { getEvents, createEvent, updateEvent, deleteEvent } from '../lib/calendar'
+import { toLocalDateStr } from '../lib/utils'
 import './Calendar.css'
 
 const WINDOW_BACK = 45
 const WINDOW_FWD = 210
-
-function toLocalDateStr(d) {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
+const NEW_EVENT_MINUTES = 30
 
 function toLocalTimeStr(d) {
   const h = String(d.getHours()).padStart(2, '0')
@@ -26,16 +21,26 @@ function toLocalTimeStr(d) {
 }
 
 // Google Calendar all-day end dates are exclusive; the UI works with inclusive dates.
-function nextDay(dateStr) {
+function addDays(dateStr, n) {
   const d = new Date(dateStr + 'T00:00:00Z')
-  d.setUTCDate(d.getUTCDate() + 1)
+  d.setUTCDate(d.getUTCDate() + n)
   return d.toISOString().slice(0, 10)
 }
 
-function addMinutes(timeStr, mins) {
-  const [h, m] = timeStr.split(':').map(Number)
-  const total = Math.min(h * 60 + m + mins, 23 * 60 + 59)
-  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+function nextDay(dateStr) {
+  return addDays(dateStr, 1)
+}
+
+function daysBetween(fromStr, toStr) {
+  return Math.round((new Date(toStr + 'T00:00:00Z') - new Date(fromStr + 'T00:00:00Z')) / 86400000)
+}
+
+function localDateTime(dateStr, timeStr) {
+  return new Date(`${dateStr}T${timeStr}:00`)
+}
+
+function normalizeEmails(str) {
+  return str.split(',').map(s => s.trim()).filter(s => s.includes('@'))
 }
 
 export default function Calendar() {
@@ -131,7 +136,7 @@ export default function Calendar() {
     lastDay.setDate(lastDay.getDate() - 1)
     setAddDefaults({
       date: toLocalDateStr(info.start),
-      endDate: allDay ? toLocalDateStr(lastDay) : toLocalDateStr(info.start),
+      endDate: toLocalDateStr(allDay ? lastDay : info.end),
       allDay,
       startTime: allDay ? '09:00' : toLocalTimeStr(info.start),
       endTime: allDay ? '10:00' : toLocalTimeStr(info.end),
@@ -252,15 +257,13 @@ function EventForm({ event, defaults, onSaved, onCancel, onDelete }) {
   const isEdit = !!event
 
   const initDate = () => {
-    if (event) {
-      return event.allDay ? event.start : event.start.slice(0, 10)
-    }
-    return defaults?.date || toLocalDateStr(new Date())
+    if (event) return event.allDay ? event.start : toLocalDateStr(new Date(event.start))
+    return defaults?.date || toLocalDateStr()
   }
 
   const initEndDate = () => {
-    if (event) return event.allDay ? event.end : event.start.slice(0, 10)
-    return defaults?.endDate || defaults?.date || toLocalDateStr(new Date())
+    if (event) return event.allDay ? event.end : toLocalDateStr(new Date(event.end))
+    return defaults?.endDate || defaults?.date || toLocalDateStr()
   }
 
   const initAllDay = () => {
@@ -292,27 +295,37 @@ function EventForm({ event, defaults, onSaved, onCancel, onDelete }) {
   const [endTime, setEndTime] = useState(initEndTime)
   const [location, setLocation] = useState(event?.location || '')
   const [description, setDescription] = useState(event?.description || '')
-  const [attendeesStr, setAttendeesStr] = useState(
-    event?.attendees?.map(a => a.email).join(', ') || ''
-  )
+  const originalAttendees = event?.attendees?.map(a => a.email).join(', ') || ''
+  const [attendeesStr, setAttendeesStr] = useState(originalAttendees)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
 
+  // Moving the start date carries the end date along so the event keeps its length.
   function handleDateChange(value) {
+    if (!value) return
+    if (date && endDate) setEndDate(addDays(endDate, daysBetween(date, value)))
     setDate(value)
-    if (value && endDate < value) setEndDate(value)
   }
 
+  // New events default to 30 minutes; edits keep the event's existing length.
   function handleStartTimeChange(value) {
     setStartTime(value)
-    if (value) setEndTime(addMinutes(value, 30))
+    if (!value) return
+    const currentMinutes = (localDateTime(endDate, endTime) - localDateTime(date, startTime)) / 60000
+    const minutes = isEdit && currentMinutes > 0 ? currentMinutes : NEW_EVENT_MINUTES
+    const newEnd = new Date(localDateTime(date, value).getTime() + minutes * 60000)
+    setEndDate(toLocalDateStr(newEnd))
+    setEndTime(toLocalTimeStr(newEnd))
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (!summary.trim()) { setError('Title is required.'); return }
-    if (!allDay && endTime <= startTime) { setError('End time must be after start time.'); return }
+    if (!date || !endDate) { setError('Start and end dates are required.'); return }
     if (allDay && endDate < date) { setError('End date must be on or after start date.'); return }
+    if (!allDay && localDateTime(endDate, endTime) <= localDateTime(date, startTime)) {
+      setError('End must be after start.'); return
+    }
 
     setSaving(true)
     try {
@@ -322,15 +335,15 @@ function EventForm({ event, defaults, onSaved, onCancel, onDelete }) {
         end = nextDay(endDate)
       } else {
         start = `${date}T${startTime}:00`
-        end = `${date}T${endTime}:00`
+        end = `${endDate}T${endTime}:00`
       }
 
-      const attendees = attendeesStr
-        .split(',')
-        .map(s => s.trim())
-        .filter(s => s.includes('@'))
+      const attendees = normalizeEmails(attendeesStr)
 
       if (isEdit) {
+        // Only send attendees when changed: patching them on an event someone else
+        // organized is rejected by Google, which would block unrelated edits.
+        const attendeesChanged = attendees.join(',') !== normalizeEmails(originalAttendees).join(',')
         await updateEvent({
           eventId: event.id,
           summary: summary.trim(),
@@ -339,7 +352,7 @@ function EventForm({ event, defaults, onSaved, onCancel, onDelete }) {
           allDay,
           location: location.trim(),
           description: description.trim(),
-          attendees,
+          attendees: attendeesChanged ? attendees : undefined,
         })
       } else {
         await createEvent({
@@ -369,23 +382,16 @@ function EventForm({ event, defaults, onSaved, onCancel, onDelete }) {
         <input type="text" value={summary} onChange={e => setSummary(e.target.value)} autoFocus />
       </label>
 
-      {allDay ? (
-        <div className="time-row">
-          <label className="form-label">
-            Start date
-            <input type="date" value={date} onChange={e => handleDateChange(e.target.value)} />
-          </label>
-          <label className="form-label">
-            End date
-            <input type="date" value={endDate} min={date} onChange={e => setEndDate(e.target.value)} />
-          </label>
-        </div>
-      ) : (
+      <div className="time-row">
         <label className="form-label">
-          Date
+          Start date
           <input type="date" value={date} onChange={e => handleDateChange(e.target.value)} />
         </label>
-      )}
+        <label className="form-label">
+          End date
+          <input type="date" value={endDate} min={date} onChange={e => setEndDate(e.target.value)} />
+        </label>
+      </div>
 
       <label className="form-label checkbox-label">
         <input type="checkbox" checked={allDay} onChange={e => setAllDay(e.target.checked)} />

@@ -120,6 +120,12 @@
   font-size: 0.9rem;
 }
 
+.grocery-item-overlay {
+  border-color: var(--accent-teal);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  cursor: grabbing;
+}
+
 .grocery-item.checked .grocery-check-label {
   text-decoration: line-through;
   color: var(--text-muted);

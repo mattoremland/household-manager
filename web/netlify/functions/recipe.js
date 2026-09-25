@@ -1,3 +1,5 @@
+import { requirePasscode } from '../lib/passcode.js'
+
 function json(status, body) {
   return new Response(JSON.stringify(body), {
     status,
@@ -6,6 +8,9 @@ function json(status, body) {
 }
 
 export default async (req) => {
+  const denied = await requirePasscode(req)
+  if (denied) return denied
+
   if (req.method !== 'POST') {
     return json(405, { error: 'Method not allowed' })
   }

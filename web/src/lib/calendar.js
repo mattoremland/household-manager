@@ -1,3 +1,5 @@
+import { functionFetch } from './passcode'
+
 const BASE = '/.netlify/functions/calendar'
 
 async function calendarFetch(params, options = {}) {
@@ -6,7 +8,7 @@ async function calendarFetch(params, options = {}) {
     if (v !== undefined) url.searchParams.set(k, v)
   }
 
-  const res = await fetch(url.toString(), {
+  const res = await functionFetch(url.toString(), {
     ...options,
     headers: { 'Content-Type': 'application/json', ...options.headers },
   })
@@ -21,17 +23,17 @@ export async function getEvents(timeMin, timeMax) {
   return data.events
 }
 
-export async function createEvent({ summary, start, end, allDay, location, description }) {
+export async function createEvent({ summary, start, end, allDay, location, description, attendees }) {
   return calendarFetch({ action: 'create' }, {
     method: 'POST',
-    body: JSON.stringify({ summary, start, end, allDay, location, description }),
+    body: JSON.stringify({ summary, start, end, allDay, location, description, attendees }),
   })
 }
 
-export async function updateEvent({ eventId, summary, start, end, allDay, location, description }) {
+export async function updateEvent({ eventId, summary, start, end, allDay, location, description, attendees }) {
   return calendarFetch({ action: 'update' }, {
     method: 'PUT',
-    body: JSON.stringify({ eventId, summary, start, end, allDay, location, description }),
+    body: JSON.stringify({ eventId, summary, start, end, allDay, location, description, attendees }),
   })
 }
 
