@@ -98,51 +98,65 @@ function buildSectionedItems(items) {
   return sections
 }
 
-function flatOrderFromSections(sections) {
-  const ids = []
-  for (const [, items] of sections) {
-    for (const item of items) ids.push(item.id)
-  }
-  return ids
-}
-
 function GrocerySection({ items, onChanged }) {
-  const [dragging, setDragging] = useState(false)
+  // Local copy during a drag so the dragged item can move between sections live.
+  const [dragItems, setDragItems] = useState(null)
+  const dragging = dragItems !== null
+  const displayItems = dragItems || items
   const unchecked = items.filter(i => !i.is_checked)
   const checked = items.filter(i => i.is_checked)
-  const sections = buildSectionedItems(items)
-  const allIds = flatOrderFromSections(sections)
+  const sections = buildSectionedItems(displayItems)
 
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   const sensors = useSensors(pointerSensor, touchSensor)
 
-  function handleDragStart() { setDragging(true) }
-  function handleDragCancel() { setDragging(false) }
+  const findById = (list, id) => list.find(i => String(i.id) === String(id))
 
-  async function handleDragEnd(event) {
-    setDragging(false)
-    const { active, over } = event
-    if (!active || !over || active.id === over.id) return
+  function handleDragStart() { setDragItems(items) }
+  function handleDragCancel() { setDragItems(null) }
 
-    const draggedItem = items.find(i => String(i.id) === String(active.id))
-    if (!draggedItem) return
+  function handleDragOver({ active, over }) {
+    if (!over || active.id === over.id) return
+    setDragItems(prev => {
+      if (!prev) return prev
+      const activeItem = findById(prev, active.id)
+      const overItem = findById(prev, over.id)
+      const target = overItem
+        ? (overItem.category || 'other')
+        : SECTION_ORDER.includes(over.id) ? over.id : null
+      if (!activeItem || !target || (activeItem.category || 'other') === target) return prev
+      return prev.map(i => i.id === activeItem.id
+        ? { ...i, category: target, sort_order: overItem ? overItem.sort_order : 0 }
+        : i)
+    })
+  }
 
-    const overItem = items.find(i => String(i.id) === String(over.id))
+  async function handleDragEnd({ active, over }) {
+    const localItems = dragItems
+    const original = findById(items, active.id)
+    const moved = localItems && findById(localItems, active.id)
+    if (!over || !original || !moved) { setDragItems(null); return }
+
+    const overItem = String(over.id) !== String(active.id) ? findById(items, over.id) : null
     const newCategory = overItem
       ? (overItem.category || 'other')
-      : SECTION_ORDER.includes(over.id) ? over.id : null
-    if (!newCategory) return
+      : SECTION_ORDER.includes(over.id) ? over.id : (moved.category || 'other')
+    const categoryChanged = (original.category || 'other') !== newCategory
+    if (!overItem && !categoryChanged) { setDragItems(null); return }
 
-    const categoryChanged = draggedItem.category !== newCategory
-    const updates = { sort_order: overItem ? overItem.sort_order : 0 }
+    const updates = { sort_order: overItem ? overItem.sort_order : moved.sort_order || 0 }
     if (categoryChanged) updates.category = newCategory
 
-    await updateGroceryItem(draggedItem.id, updates)
-    if (categoryChanged && !STORE_ONLY_SECTIONS.has(newCategory)) {
-      await saveCategoryMapping(draggedItem.name, newCategory)
+    try {
+      await updateGroceryItem(original.id, updates)
+      if (categoryChanged && !STORE_ONLY_SECTIONS.has(newCategory)) {
+        await saveCategoryMapping(original.name, newCategory)
+      }
+      await onChanged()
+    } finally {
+      setDragItems(null)
     }
-    onChanged()
   }
 
   return (
@@ -158,21 +172,21 @@ function GrocerySection({ items, onChanged }) {
         <p className="muted-text">Grocery list is empty — add something above.</p>
       )}
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
-        <SortableContext items={allIds.map(String)} strategy={verticalListSortingStrategy}>
-          {[...sections.entries()].map(([category, sectionItems]) => {
-            if (sectionItems.length === 0 && !dragging) return null
-            return (
-              <div key={category} className="grocery-category-section">
-                <div className="grocery-category-header">{SECTION_LABELS[category] || category}</div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
+        {[...sections.entries()].map(([category, sectionItems]) => {
+          if (sectionItems.length === 0 && !dragging) return null
+          return (
+            <div key={category} className="grocery-category-section">
+              <div className="grocery-category-header">{SECTION_LABELS[category] || category}</div>
+              <SortableContext items={sectionItems.map(i => String(i.id))} strategy={verticalListSortingStrategy}>
                 {sectionItems.map(item => (
                   <SortableGroceryItem key={item.id} item={item} onChanged={onChanged} />
                 ))}
-                {sectionItems.length === 0 && <EmptySectionDrop category={category} />}
-              </div>
-            )
-          })}
-        </SortableContext>
+              </SortableContext>
+              {sectionItems.length === 0 && <EmptySectionDrop category={category} />}
+            </div>
+          )
+        })}
       </DndContext>
 
       {checked.length > 0 && (

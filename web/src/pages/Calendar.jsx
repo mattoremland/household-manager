@@ -25,6 +25,19 @@ function toLocalTimeStr(d) {
   return `${h}:${m}`
 }
 
+// Google Calendar all-day end dates are exclusive; the UI works with inclusive dates.
+function nextDay(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
+
+function addMinutes(timeStr, mins) {
+  const [h, m] = timeStr.split(':').map(Number)
+  const total = Math.min(h * 60 + m + mins, 23 * 60 + 59)
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
+
 export default function Calendar() {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -97,9 +110,7 @@ export default function Calendar() {
 
     if (allDay) {
       start = toLocalDateStr(info.event.start)
-      const endDate = info.event.end ? new Date(info.event.end) : new Date(info.event.start)
-      if (info.event.end) endDate.setDate(endDate.getDate() - 1)
-      end = toLocalDateStr(endDate)
+      end = info.event.end ? toLocalDateStr(info.event.end) : nextDay(start)
     } else {
       start = info.event.start.toISOString()
       end = (info.event.end || info.event.start).toISOString()
@@ -116,8 +127,11 @@ export default function Calendar() {
 
   function handleDateSelect(info) {
     const allDay = info.allDay
+    const lastDay = new Date(info.end)
+    lastDay.setDate(lastDay.getDate() - 1)
     setAddDefaults({
       date: toLocalDateStr(info.start),
+      endDate: allDay ? toLocalDateStr(lastDay) : toLocalDateStr(info.start),
       allDay,
       startTime: allDay ? '09:00' : toLocalTimeStr(info.start),
       endTime: allDay ? '10:00' : toLocalTimeStr(info.end),
@@ -244,6 +258,11 @@ function EventForm({ event, defaults, onSaved, onCancel, onDelete }) {
     return defaults?.date || toLocalDateStr(new Date())
   }
 
+  const initEndDate = () => {
+    if (event) return event.allDay ? event.end : event.start.slice(0, 10)
+    return defaults?.endDate || defaults?.date || toLocalDateStr(new Date())
+  }
+
   const initAllDay = () => {
     if (event) return event.allDay
     return defaults?.allDay ?? false
@@ -267,6 +286,7 @@ function EventForm({ event, defaults, onSaved, onCancel, onDelete }) {
 
   const [summary, setSummary] = useState(event?.title || '')
   const [date, setDate] = useState(initDate)
+  const [endDate, setEndDate] = useState(initEndDate)
   const [allDay, setAllDay] = useState(initAllDay)
   const [startTime, setStartTime] = useState(initStartTime)
   const [endTime, setEndTime] = useState(initEndTime)
@@ -278,17 +298,28 @@ function EventForm({ event, defaults, onSaved, onCancel, onDelete }) {
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
 
+  function handleDateChange(value) {
+    setDate(value)
+    if (value && endDate < value) setEndDate(value)
+  }
+
+  function handleStartTimeChange(value) {
+    setStartTime(value)
+    if (value) setEndTime(addMinutes(value, 30))
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     if (!summary.trim()) { setError('Title is required.'); return }
     if (!allDay && endTime <= startTime) { setError('End time must be after start time.'); return }
+    if (allDay && endDate < date) { setError('End date must be on or after start date.'); return }
 
     setSaving(true)
     try {
       let start, end
       if (allDay) {
         start = date
-        end = date
+        end = nextDay(endDate)
       } else {
         start = `${date}T${startTime}:00`
         end = `${date}T${endTime}:00`
@@ -338,10 +369,23 @@ function EventForm({ event, defaults, onSaved, onCancel, onDelete }) {
         <input type="text" value={summary} onChange={e => setSummary(e.target.value)} autoFocus />
       </label>
 
-      <label className="form-label">
-        Date
-        <input type="date" value={date} onChange={e => setDate(e.target.value)} />
-      </label>
+      {allDay ? (
+        <div className="time-row">
+          <label className="form-label">
+            Start date
+            <input type="date" value={date} onChange={e => handleDateChange(e.target.value)} />
+          </label>
+          <label className="form-label">
+            End date
+            <input type="date" value={endDate} min={date} onChange={e => setEndDate(e.target.value)} />
+          </label>
+        </div>
+      ) : (
+        <label className="form-label">
+          Date
+          <input type="date" value={date} onChange={e => handleDateChange(e.target.value)} />
+        </label>
+      )}
 
       <label className="form-label checkbox-label">
         <input type="checkbox" checked={allDay} onChange={e => setAllDay(e.target.checked)} />
@@ -352,7 +396,7 @@ function EventForm({ event, defaults, onSaved, onCancel, onDelete }) {
         <div className="time-row">
           <label className="form-label">
             Start
-            <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+            <input type="time" value={startTime} onChange={e => handleStartTimeChange(e.target.value)} />
           </label>
           <label className="form-label">
             End
